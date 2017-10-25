@@ -7,9 +7,11 @@ class LootParse:
     fully_loaded=0
 
     def __init__(self):
+        """Startup of the loot parser.  Initial values"""
         self.reload()
 
     def reload(self):
+        """Performs the actual reload of the character data"""
         try:
 
             reqAPI = requests.get('https://theancientcoalition.com/api.php?function=points&format=json').json()
@@ -54,13 +56,16 @@ class LootParse:
             self.fully_loaded=0
 
     def is_loaded(self):
+        """A function which allows outside functions to know whether the character database is loaded"""
         return self.fully_loaded
 
     def getChar(self,character):
+        """Returns the raw data for a specific character"""
         self.cacheItems(character)
         return self.characters[character.upper()]
 
     def cacheItems(self,character):
+        """Loads to loot table into the character table for a specific character"""
         reqWEB = requests.get('https://theancientcoalition.com/index.php/Items/?search_type=buyer&search='+character)
         counter=0
         webLines = reqWEB.text.splitlines()
@@ -96,10 +101,12 @@ class LootParse:
             counter = counter + 1
 
     def test(self):
+        """Performs the item loading test against the characters table"""
         for character in self.characters.keys():
             print (self.getChar(character))
 
     def display(self,character):
+        """Returns a formatted output for the character data passed to it."""
         cache=self.getChar(character.upper())
         output="**"+cache['name']+"** ("+cache['class']+"/"+cache['rank']+")"
         output=output+"\t30 Day: **"+ str(math.floor(100*int(cache['attendance'][0][0])/int(cache['attendance'][0][1])))+"% ("+str(cache['attendance'][0][0])+"/"+str(cache['attendance'][0][1])+")**"
@@ -116,6 +123,7 @@ class LootParse:
         return output
 
     def classes(self,classtype):
+        """Search the characters table for a list of names of those matching a class"""
         results=[]
         for character in self.characters.values():
             if character['class'].upper() == classtype.upper():

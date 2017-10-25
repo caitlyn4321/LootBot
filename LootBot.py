@@ -11,14 +11,8 @@ counts = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣'
 checkbox = ['✅', '❌']
 varQuote=quotes.quotesClass()
 
-def is_int(num):
-    try:
-        num=int(num)
-        return True
-    except:
-        return False
-
 def quote_to_embed(result):
+    """ Takes a list containing quote values and turns it into an embed that can be posted to discord."""
     thedate=datetime.date.fromtimestamp(result[3])
     thechannel=bot.get_channel(result[2])
     themember=thechannel.server.get_member(result[1])
@@ -28,6 +22,7 @@ def quote_to_embed(result):
 
 @bot.event
 async def on_ready():
+    """ An event handler to print out information once startup is complete"""
     print('Logged in as')
     print(bot.user.name)
     print(bot.user.id)
@@ -36,6 +31,7 @@ async def on_ready():
 
 @bot.command(hidden=True, pass_context=True, description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")
 async def test(ctx):
+    """Runs a test by loading every persons items and reporting failures"""
     await bot.type()
     if str(ctx.message.author.id) == myowner:
         await bot.add_reaction(ctx.message, checkbox[0])
@@ -51,6 +47,7 @@ async def test(ctx):
 
 @bot.command(hidden=True, pass_context=True, description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")
 async def pr(ctx):
+    """Prints a message to the console.  Useful for finding out what unicode emotes translate to"""
     await bot.type()
     if str(ctx.message.author.id) == myowner:
         await bot.add_reaction(ctx.message, checkbox[0])
@@ -66,6 +63,7 @@ async def pr(ctx):
 
 @bot.command(pass_context=True, description="Ping the bot owner")
 async def owner(ctx):
+    """Page the bot owner"""
     await bot.type()
     mymention= await bot.get_user_info(myowner)
     if str(ctx.message.author.id) == myowner:
@@ -76,6 +74,7 @@ async def owner(ctx):
 
 @bot.command(description="Clear the memory and start over fresh")
 async def reload():
+    """Performs a reload of the character table"""
     await bot.type()
     loot.reload()
     await bot.say("reload complete")
@@ -83,9 +82,11 @@ async def reload():
 
 @bot.command(pass_context=True,description="Looks up the loot history for a person or list of people.  Put a question/title in quotes first for a header.",aliases=["Lookup"])
 async def lookup(ctx,*character : str):
+    """The Bot command to perform a character lookup"""
     await do_lookup(ctx,character,True)
 
 async def do_lookup(ctx,character,do_show,embedtitle=""):
+    """The function that actually does the lookups.  Shared between multiple functions"""
     await bot.type()
     if not loot.is_loaded():
         await bot.say("I am currently not fully loaded.  Please !reload when I am not broken")
@@ -134,6 +135,7 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
 
 @bot.command(pass_context=True, description="Do a simple poll.  Ask your question and list options after.  Anything with spaces must have quotes around it",aliases=["Poll"])
 async def poll(ctx, question, *options: str):
+    """Creates a poll that members can vote on with emotes"""
     if len(options) <= 1:
         await bot.say('You need more than one option to make a poll!')
         return
@@ -159,6 +161,7 @@ async def poll(ctx, question, *options: str):
 
 @bot.command(pass_context=True, description="Do a simple list.",aliases=["List"])
 async def list(ctx, question, *options: str):
+    """Creates a list of items with no voting"""
     if len(options) > 21:
         await bot.say('You cannot make a poll for more than 20 things!')
         return
@@ -171,6 +174,7 @@ async def list(ctx, question, *options: str):
 
 @bot.command(description="Lookup an item",aliases=["Item"])
 async def item(*itemname : str):
+    """Attemps very poorly to load an item from the web"""
     await bot.type()
 
     reqWEB = requests.get('http://everquest.allakhazam.com/ihtml?'+html.escape('+'.join(itemname)))
@@ -198,6 +202,7 @@ async def item(*itemname : str):
 
 @bot.command(pass_context=True,description="Insults people")
 async def insult(ctx):
+    """Bot command that uses an amazing insult API to say an insult"""
     await bot.type()
     reqWEB = requests.get('https://insult.mattbas.org/api/en/insult.json').json()
 
@@ -206,6 +211,7 @@ async def insult(ctx):
 
 @bot.command(pass_context=True,description="Updates my status message")
 async def update_status(ctx,*messages : str):
+    """Updats the status that the bot displays"""
     await bot.type()
     if str(ctx.message.author.id) == myowner:
         await bot.change_presence(game=discord.Game(name=' '.join(messages)))
@@ -215,12 +221,14 @@ async def update_status(ctx,*messages : str):
 
 @bot.command(pass_context=True,description="Add a quote")
 async def quote_add(ctx,*message : str):
+    """Adds a new quote to the database"""
     await bot.type()
     num=varQuote.add([' '.join(message),ctx.message.author.id,ctx.message.channel.id])
     await bot.say("Quote #"+str(num)+" has been added.")
 
 @bot.command(pass_context=True,description="Delete a quote")
 async def quote_del(ctx,num : int):
+    """Deletes a specific quote from a database"""
     await bot.type()
     if str(ctx.message.author.id) == myowner:
         varQuote.delete(num)
@@ -230,6 +238,7 @@ async def quote_del(ctx,num : int):
 
 @bot.command(pass_context=True,description="get a quote")
 async def quote_get(ctx,num : int):
+    """Gets a specific quote from the database"""
     await bot.type()
     result=varQuote.get_quote(num)
     if result==-1:
@@ -240,6 +249,7 @@ async def quote_get(ctx,num : int):
 
 @bot.command(pass_context=True,description="get a quote")
 async def quote(ctx):
+    """Gets a random quote from the database"""
     await bot.type()
     result=varQuote.get_random()
     if result==-1:
@@ -250,12 +260,14 @@ async def quote(ctx):
 
 @bot.command(pass_context=True,description="Show the number of quotes in the database")
 async def quote_count(ctx):
+    """Count the quotes in the database"""
     await bot.type()
     result=varQuote.count()
     await bot.say(result)
 
 @bot.command(pass_context=True,description="Lookup by class",aliases=["csearch","class_lookup"])
 async def clookup(ctx,classtype):
+    """Perform a lookup on everyone of a single class type"""
     await bot.type()
     result=loot.classes(classtype)
     if len(result)==0:
@@ -265,9 +277,11 @@ async def clookup(ctx,classtype):
 
 @bot.command(pass_context=True)
 async def tally(ctx, *id):
+    """Tally the votes for a poll"""
     await do_tally(ctx,id)
 
 async def do_tally(ctx,ids):
+    """This is the backend that supports the tallying of polls and loot council votes"""
     print(ids)
     for id in ids:
         poll_message = await bot.get_message(ctx.message.channel, id)
@@ -296,12 +310,14 @@ async def do_tally(ctx,ids):
 
 @bot.command(pass_context=True,description="Starts a loot council timed poll using the loot history for a person or list of people.  Put a question/title in quotes first for a header.",aliases=["Lc","LC"])
 async def lc(ctx,title, minutes : int, *character : str):
+    """Initiates a loot council vote"""
     messages=await do_lookup(ctx,character,True,title)
     await bot.say("Poll will close in {} minutes.".format(minutes))
     bot.loop.create_task(wait_for_poll(ctx,messages,minutes))
 
 
 async def wait_for_poll(ctx,ids,minutes):
+    """This is the async background task created to close the poll out after a specific time."""
     await bot.wait_until_ready()
     await asyncio.sleep(60*minutes)
     if not bot.is_closed:

@@ -106,4 +106,4 @@ venv.bak/
 # Private authentication information
 secrets.py
 .idea/
-
+quotes.json
