@@ -120,6 +120,10 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
 
         if len(output)>0:
             embed = discord.Embed(title=embedtitle, description=output)
+            if ctx.message.author.nick is not None:
+                embed.set_author(name=ctx.message.author.nick, icon_url=ctx.message.author.avatar_url)
+            else:
+                embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
             react = await bot.say(embed=embed)
             lookup_list.append(react.id)
 
@@ -152,6 +156,10 @@ async def poll(ctx, question, *options: str):
     for x, option in enumerate(options):
         description += '\n{} {}'.format(reactions[x], option)
     embed = discord.Embed(title=question, description=''.join(description))
+    if ctx.message.author.nick is not None:
+        embed.set_author(name=ctx.message.author.nick, icon_url=ctx.message.author.avatar_url)
+    else:
+        embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
     react_message = await bot.say(embed=embed)
     for reaction in reactions[:len(options)]:
         await bot.add_reaction(react_message, reaction)
