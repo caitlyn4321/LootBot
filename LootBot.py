@@ -1,4 +1,4 @@
-import secrets, discord,LootParse, html, re, requests, quotes,datetime, asyncio
+import secrets, discord, LootParse, html, re, requests, quotes, datetime, asyncio
 from discord.ext import commands
 
 
@@ -10,6 +10,13 @@ poop="💩"
 counts = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '🔟','🇦', '🇧', '🇨',  '🇩',  '🇪', '🇫', '🇬', '🇭', '🇮', '🇯']
 checkbox = ['✅', '❌']
 varQuote=quotes.quotesClass()
+
+def dict_to_embed(starting):
+    """Takes an embed dict and returns an embed object"""
+    embed = discord.Embed(title=starting['title'], description=starting['description'])
+    embed.set_author(name=starting['author']['name'], icon_url=starting['author']['icon_url'])
+    embed.set_footer(text=starting['footer']['text'])
+    return embed
 
 def quote_to_embed(result):
     """ Takes a list containing quote values and turns it into an embed that can be posted to discord."""
@@ -140,6 +147,22 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
 @bot.command(pass_context=True, description="Do a simple poll.  Ask your question and list options after.  Anything with spaces must have quotes around it",aliases=["Poll"])
 async def poll(ctx, question, *options: str):
     """Creates a poll that members can vote on with emotes"""
+    await do_poll(ctx,question,options)
+
+@bot.command(pass_context=True, description="Do a simple poll.  Ask your question and list options after.  Anything with spaces must have quotes around it",aliases=["tp"])
+async def timed_poll(ctx, question, minutes : int,*options: str):
+    """Creates a timed poll that members can vote on with emotes."""
+    messages=[await do_poll(ctx,question,options)]
+    for message in messages:
+        poll_message=await bot.get_message(ctx.message.channel, message)
+        if poll_message.embeds:
+            embed=dict_to_embed(poll_message.embeds[0])
+            embed.set_footer(text="{}\nThis poll will close in {} minutes".format(poll_message.embeds[0]['footer']['text'],minutes))
+            await bot.edit_message(poll_message,embed=embed)
+    bot.loop.create_task(wait_for_poll(ctx,messages,minutes))
+
+async def do_poll(ctx, question, options):
+    """The backend shared poll code"""
     if len(options) <= 1:
         await bot.say('You need more than one option to make a poll!')
         return
@@ -166,6 +189,7 @@ async def poll(ctx, question, *options: str):
     embed.set_footer(text='Poll ID: {}'.format(react_message.id))
     await bot.edit_message(react_message, embed=embed)
     await bot.delete_message(ctx.message)
+    return react_message.id
 
 @bot.command(pass_context=True, description="Do a simple list.",aliases=["List"])
 async def list(ctx, question, *options: str):
@@ -290,7 +314,6 @@ async def tally(ctx, *id):
 
 async def do_tally(ctx,ids):
     """This is the backend that supports the tallying of polls and loot council votes"""
-    print(ids)
     for id in ids:
         poll_message = await bot.get_message(ctx.message.channel, id)
         if poll_message.embeds:
@@ -320,7 +343,12 @@ async def do_tally(ctx,ids):
 async def lc(ctx,title, minutes : int, *character : str):
     """Initiates a loot council vote"""
     messages=await do_lookup(ctx,character,True,title)
-    await bot.say("Poll will close in {} minutes.".format(minutes))
+    for message in messages:
+        poll_message=await bot.get_message(ctx.message.channel, message)
+        if poll_message.embeds:
+            embed = dict_to_embed(poll_message.embeds[0])
+            embed.set_footer(text="This poll will close in {} minutes".format(minutes))
+            await bot.edit_message(poll_message, embed=embed)
     bot.loop.create_task(wait_for_poll(ctx,messages,minutes))
 
 
@@ -330,8 +358,13 @@ async def wait_for_poll(ctx,ids,minutes):
     await asyncio.sleep(60*minutes)
     if not bot.is_closed:
         await do_tally(ctx,ids)
-        for id in ids:
-            await bot.clear_reactions(await bot.get_message(ctx.message.channel, id))
+        for message in ids:
+            poll_message = await bot.get_message(ctx.message.channel, message)
+            if poll_message.embeds:
+                embed = dict_to_embed(poll_message.embeds[0])
+                embed.set_footer(text="Voting is now closed".format(minutes))
+                await bot.edit_message(poll_message, embed=embed)
+            await bot.clear_reactions(poll_message)
     return
 
 
