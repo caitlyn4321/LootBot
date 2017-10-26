@@ -1,6 +1,9 @@
 import secrets, discord, LootParse, html, re, requests, quotes, datetime, asyncio
 from discord.ext import commands
 
+# TODO : Update the bot to be a class for easier unit testing.
+# TODO : Clean the code up to PEP 8 standards for sharing
+# TODO : Create proper unit testing
 
 myowner="85512679678033920"
 description = '''LootBot - Queen of the loots'''
