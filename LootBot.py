@@ -4,6 +4,7 @@ from discord.ext import commands
 # TODO : Update the bot to be a class for easier unit testing.
 # TODO : Clean the code up to PEP 8 standards for sharing
 # TODO : Create proper unit testing
+# TODO : Replace + string concatenation with .format
 
 myowner="85512679678033920"
 description = '''LootBot - Queen of the loots'''
@@ -18,7 +19,10 @@ def dict_to_embed(starting):
     """Takes an embed dict and returns an embed object"""
     embed = discord.Embed(title=starting['title'], description=starting['description'])
     embed.set_author(name=starting['author']['name'], icon_url=starting['author']['icon_url'])
-    embed.set_footer(text=starting['footer']['text'])
+    if "footer" in starting.keys():
+        embed.set_footer(text=starting['footer']['text'])
+    else:
+        embed.set_footer(text="")
     return embed
 
 def quote_to_embed(result):
@@ -130,8 +134,11 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
 
         if len(output)>0:
             embed = discord.Embed(title=embedtitle, description=output)
-            if ctx.message.author.nick is not None:
-                embed.set_author(name=ctx.message.author.nick, icon_url=ctx.message.author.avatar_url)
+            if hasattr(ctx.message.author,"nick"):
+                if ctx.message.author.nick is not None:
+                    embed.set_author(name=ctx.message.author.nick, icon_url=ctx.message.author.avatar_url)
+                else:
+                    embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
             else:
                 embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
             react = await bot.say(embed=embed)
@@ -182,8 +189,11 @@ async def do_poll(ctx, question, options):
     for x, option in enumerate(options):
         description += '\n{} {}'.format(reactions[x], option)
     embed = discord.Embed(title=question, description=''.join(description))
-    if ctx.message.author.nick is not None:
-        embed.set_author(name=ctx.message.author.nick, icon_url=ctx.message.author.avatar_url)
+    if hasattr(ctx.message.author, "nick"):
+        if ctx.message.author.nick is not None:
+            embed.set_author(name=ctx.message.author.nick, icon_url=ctx.message.author.avatar_url)
+        else:
+            embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
     else:
         embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
     react_message = await bot.say(embed=embed)
