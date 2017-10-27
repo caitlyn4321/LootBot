@@ -1,4 +1,4 @@
-import secrets, discord, LootParse, html, re, requests, quotes, datetime, asyncio
+import secrets, discord, LootParse, html, re, requests, quotes, datetime, asyncio, sys
 from discord.ext import commands
 
 # TODO : Update the bot to be a class for easier unit testing.
@@ -129,6 +129,7 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
                     output=output+counts[hits]+" "+str(loot.display(char))+"\n"
                     hits=hits+1
                 except:
+                    print(sys.exc_info()[0])
                     if do_show == True:
                         output=output+"```I don't know who "+char+" is.  I blame you.```\n"
 
@@ -222,6 +223,8 @@ async def item(*itemname : str):
     """Attemps very poorly to load an item from the web"""
     await bot.type()
 
+    await bot.say("Just google it,  this command is stupid: http://lmgtfy.com/?q={}".format(html.escape('+'.join(itemname))))
+    return
     reqWEB = requests.get('http://everquest.allakhazam.com/ihtml?'+html.escape('+'.join(itemname)))
     counter=0
     webLines=reqWEB.text.splitlines()

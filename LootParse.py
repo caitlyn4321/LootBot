@@ -25,6 +25,7 @@ class LootParse:
                 thischaracter['name'] = character['name']
                 thischaracter['class'] = character['class_name']
                 thischaracter['items'] = []
+                thischaracter['items_loaded'] = 0
                 self.characters[character['name'].upper()]=thischaracter
 
             webLines=reqWEB.text.splitlines()
@@ -65,7 +66,10 @@ class LootParse:
         return self.characters[character.upper()]
 
     def cacheItems(self,character):
+        print(1)
         """Loads to loot table into the character table for a specific character"""
+        if self.characters[character.upper()]['items_loaded']==1:
+            return
         reqWEB = requests.get('https://theancientcoalition.com/index.php/Items/?search_type=buyer&search='+character)
         counter=0
         webLines = reqWEB.text.splitlines()
@@ -74,31 +78,23 @@ class LootParse:
             if "<td class=\"hiddenSmartphone twinktd\">Items</td>" in webLines[counter]:
                 m = re.search("<td >(\w+)</td>", webLines[counter-3])
                 charname = m.group(1).upper()
-                found=0
 
-                for item in self.characters[charname]['items']:
+                newitem={}
+                if "img" in webLines[counter - 2]:
                     m = re.search("> (.+)</span></a></td>", webLines[counter - 2])
-                    if html.unescape(item['name']) == html.unescape(m.group(1)):
-                        m = re.search("\">(.+)</a></td>", webLines[counter - 1])
-                        item['raid']=html.unescape(m.group(1))
-                        m = re.search("<td >(.+)</td>", webLines[counter - 4])
-                        raiddate = m.group(1)
-                        datetime_object = datetime.strptime(raiddate, '%m.%d.%y')
-                        item['date']=datetime_object.date()
-                        found=1
-
-                if found==0:
-                    newitem={}
-                    m = re.search("> (.+)</span></a></td>", webLines[counter - 2])
-                    newitem['name']=html.unescape(m.group(1))
-                    m = re.search("\">(.+)</a></td>", webLines[counter - 1])
-                    newitem['raid'] = html.unescape(m.group(1))
-                    m = re.search("<td >(.+)</td>", webLines[counter - 4])
-                    raiddate = m.group(1)
-                    datetime_object = datetime.strptime(raiddate, '%m.%d.%y')
-                    newitem['date'] = datetime_object.date()
-                    self.characters[charname]['items'].append(newitem)
+                else:
+                    m = re.search("title=\"\w+\">\s?(.+)</span></a></td>", webLines[counter - 2])
+                newitem['name']=html.unescape(m.group(1))
+                m = re.search("\">(.+)</a></td>", webLines[counter - 1])
+                newitem['raid'] = html.unescape(m.group(1))
+                m = re.search("<td >(.+)</td>", webLines[counter - 4])
+                raiddate = m.group(1)
+                datetime_object = datetime.strptime(raiddate, '%m.%d.%y')
+                newitem['date'] = datetime_object.date()
+                self.characters[charname]['items'].append(newitem)
             counter = counter + 1
+        self.characters[character.upper()]['items_loaded'] = 1
+        print(2)
 
     def test(self):
         """Performs the item loading test against the characters table"""
@@ -107,6 +103,7 @@ class LootParse:
 
     def display(self,character):
         """Returns a formatted output for the character data passed to it."""
+        print(3)
         cache=self.getChar(character.upper())
         output="**"+cache['name']+"** ("+cache['class']+"/"+cache['rank']+")"
         output=output+"\t30 Day: **"+ str(math.floor(100*int(cache['attendance'][0][0])/int(cache['attendance'][0][1])))+"% ("+str(cache['attendance'][0][0])+"/"+str(cache['attendance'][0][1])+")**"
