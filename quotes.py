@@ -57,10 +57,8 @@ class quotesClass:
 
     def get_random(self):
         """Get a random quote"""
-        if self.count()>1:
-            num=random.randrange(1,self.count()+1)
+        if self.count()>=1:
+            num=self.quotes_list.index(random.choice(self.quotes_list))
             return self.get_quote(num)
-        if self.count() > 0:
-            return self.get_quote(1)
         else:
             return -1

@@ -5,6 +5,7 @@ from discord.ext import commands
 # TODO : Clean the code up to PEP 8 standards for sharing
 # TODO : Create proper unit testing
 # TODO : Replace + string concatenation with .format
+# TODO : Change the bot.typing() to with statements.
 
 myowner="85512679678033920"
 description = '''LootBot - Queen of the loots'''
