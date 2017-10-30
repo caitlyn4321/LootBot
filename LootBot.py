@@ -31,8 +31,13 @@ def quote_to_embed(result):
     thedate=datetime.date.fromtimestamp(result[3])
     thechannel=bot.get_channel(result[2])
     themember=thechannel.server.get_member(result[1])
-    embed = discord.Embed(title=result[0], description="Saved on: "+thedate.strftime("%d %B %y"))
-    embed.set_author(name=themember.name, icon_url=themember.avatar_url)
+    theauthor=themember.name
+    if hasattr(themember, "nick"):
+        if themember.nick is not None:
+            theauthor=themember.nick
+    embed = discord.Embed(title="Quote #{}".format(result[4]), description=result[0])
+    embed.set_author(name=theauthor, icon_url=themember.avatar_url)
+    embed.set_footer(text="Saved on: "+thedate.strftime("%d %B %y"))
     return embed
 
 @bot.event
