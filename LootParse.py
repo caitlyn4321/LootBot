@@ -123,6 +123,12 @@ class LootParse:
         """Search the characters table for a list of names of those matching a class"""
         results=[]
         for character in self.characters.values():
+            doappend=""
             if character['class'].upper() == classtype.upper():
-                results.append(character['name'])
+                doappend=character['name']
+            if "rank" in character.keys():
+                if character['rank'].upper() == classtype.upper():
+                    doappend=character['name']
+            if len(doappend)>0:
+                results.append(doappend)
         return results

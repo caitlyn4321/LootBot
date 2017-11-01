@@ -389,5 +389,12 @@ async def wait_for_poll(ctx,ids,minutes):
             await bot.clear_reactions(poll_message)
     return
 
+@bot.command(pass_context=True,  hidden=True)
+async def say(ctx, *message : str):
+    """Repeats something"""
+    await bot.type()
+    if str(ctx.message.author.id) == myowner:
+        await bot.say(' '.join(message))
+        await bot.delete_message(ctx.message)
 
 bot.run(secrets.BotToken)
