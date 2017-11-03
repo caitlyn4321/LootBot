@@ -1,4 +1,4 @@
-import secrets, discord, LootParse, html, re, requests, quotes, datetime, asyncio, sys
+import secrets, discord, LootParse, html, re, requests, quotes, datetime, asyncio, sys, static
 from discord.ext import commands
 
 # TODO : Update the bot to be a class for easier unit testing.
@@ -11,9 +11,6 @@ myowner="85512679678033920"
 description = '''LootBot - Queen of the loots'''
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=description,pm_help=True)
 loot=LootParse.LootParse()
-emotes={'thumbup': "👍🏾", 'punch': "👊🏾",'poop': "💩", 'moons': ["🌘", "🌗", "🌖", "🌕"]}
-counts = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '🔟','🇦', '🇧', '🇨',  '🇩',  '🇪', '🇫', '🇬', '🇭', '🇮', '🇯']
-checkbox = ['✅', '❌']
 varQuote=quotes.quotesClass()
 
 def dict_to_embed(starting):
@@ -54,7 +51,7 @@ async def test(ctx):
     """Runs a test by loading every persons items and reporting failures"""
     await bot.type()
     if str(ctx.message.author.id) == myowner:
-        await bot.add_reaction(ctx.message, checkbox[0])
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
         errors=0
         try:
             loot.test()
@@ -62,7 +59,7 @@ async def test(ctx):
             errors=errors+1
         await bot.say("Test complete.  There were "+str(errors)+" exceptions seen.")
     else:
-        await bot.add_reaction(ctx.message, checkbox[1])
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
         await bot.say("This command has only runs for my owner.  There are not a lot of good reasons to run it.")
 
 @bot.command(hidden=True, pass_context=True, description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")
@@ -70,7 +67,7 @@ async def pr(ctx):
     """Prints a message to the console.  Useful for finding out what unicode emotes translate to"""
     await bot.type()
     if str(ctx.message.author.id) == myowner:
-        await bot.add_reaction(ctx.message, checkbox[0])
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
         errors=0
         try:
             print(ctx.message.content)
@@ -78,7 +75,7 @@ async def pr(ctx):
             errors=errors+1
         await bot.say("Test complete.  There were "+str(errors)+" exceptions seen.")
     else:
-        await bot.add_reaction(ctx.message, checkbox[1])
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
         await bot.say("This command has only runs for my owner.  There are not a lot of good reasons to run it.")
 
 @bot.command(pass_context=True, description="Ping the bot owner")
@@ -119,7 +116,7 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
             newchars.append(char)
 
     if "yourmom" in newchars:
-        await bot.say(ctx.message.author.mention+" is "+emotes['poop'])
+        await bot.say(ctx.message.author.mention+" is "+static.emotes['poop'])
         return
 
     lookup_list=[]
@@ -131,7 +128,7 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
             embedtitle=char
         else:
             try:
-                newoutput=counts[hits]+" "+str(loot.display(char))+"\n"
+                newoutput=static.emotes['counts'][hits]+" "+str(loot.display(char))+"\n"
                 hits=hits+1
             except:
                 print(sys.exc_info()[0])
@@ -157,11 +154,11 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
             lookup_list.append(react.id)
 
             if hits>1:
-                for reaction in counts[:hits]:
+                for reaction in static.emotes['counts'][:hits]:
                     await bot.add_reaction(react, reaction)
             if hits==1:
-                await bot.add_reaction(react, checkbox[0])
-                await bot.add_reaction(react, checkbox[1])
+                await bot.add_reaction(react, static.emotes['checkbox'][0])
+                await bot.add_reaction(react, static.emotes['checkbox'][1])
             hits=0
             output=""
             newoutput=""
@@ -200,9 +197,9 @@ async def do_poll(ctx, question, options):
         return
 
     if len(options) == 2 and options[0] == 'yes' and options[1] == 'no':
-        reactions=checkbox
+        reactions=static.emotes['checkbox']
     else:
-        reactions = counts
+        reactions = static.emotes['counts']
 
     description = []
     for x, option in enumerate(options):
@@ -231,7 +228,7 @@ async def list(ctx, question, *options: str):
         return
     description = []
     for x, option in enumerate(options):
-        description += '\n{} {}'.format(counts[x], option)
+        description += '\n{} {}'.format(static.emotes['counts'][x], option)
     embed = discord.Embed(title=question, description=''.join(description))
     await bot.say(embed=embed)
     await bot.delete_message(ctx.message)
@@ -281,9 +278,9 @@ async def update_status(ctx,*messages : str):
     await bot.type()
     if str(ctx.message.author.id) == myowner:
         await bot.change_presence(game=discord.Game(name=' '.join(messages)))
-        await bot.add_reaction(ctx.message, checkbox[0])
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
     else:
-        await bot.add_reaction(ctx.message, checkbox[1])
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
 
 @bot.command(pass_context=True,description="Add a quote")
 async def quote_add(ctx,*message : str):
@@ -298,9 +295,9 @@ async def quote_del(ctx,num : int):
     await bot.type()
     if str(ctx.message.author.id) == myowner:
         varQuote.delete(num)
-        await bot.add_reaction(ctx.message, checkbox[0])
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
     else:
-        await bot.add_reaction(ctx.message, checkbox[1])
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
 
 @bot.command(pass_context=True,description="get a quote")
 async def quote_get(ctx,num : int):
@@ -356,7 +353,7 @@ async def do_tally(ctx,ids):
             title="Untitled Poll"
         the_tally={}
         for reaction in poll_message.reactions:
-            if reaction.emoji in counts+checkbox:
+            if reaction.emoji in static.emotes['counts']+static.emotes['checkbox']:
                 reactors = await bot.get_reaction_users(reaction)
                 if len(reactors) > 1:
                     the_tally[reaction.emoji] = []

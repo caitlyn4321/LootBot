@@ -1,7 +1,5 @@
-import requests, re, html, math
+import requests, re, html, math,static
 from datetime import datetime
-
-emotes={'thumbup': "👍🏾", 'punch': "👊🏾",'poop': "💩", 'moons': ["🌘", "🌗", "🌖", "🌕"]}
 
 class LootParse:
     characters={}
@@ -105,13 +103,13 @@ class LootParse:
         cache=self.getChar(character.upper())
         output="**"+cache['name']+"** ("+cache['class']+"/"+cache['rank']+")"
         thirtyatt=int(cache['attendance'][0][0])/int(cache['attendance'][0][1])
-        moons=emotes['moons'][3]
+        moons=static.emotes['moons'][3]
         if thirtyatt < 1:
-            moons = emotes['moons'][2]
+            moons = static.emotes['moons'][2]
         if thirtyatt <= .50:
-            moons = emotes['moons'][1]
+            moons = static.emotes['moons'][1]
         if thirtyatt <= .35:
-            moons = emotes['moons'][0]
+            moons = static.emotes['moons'][0]
         output=output+"\t"+moons+" 30 Day: **"+ str(math.ceil(100*int(cache['attendance'][0][0])/int(cache['attendance'][0][1])))+"% ("+str(cache['attendance'][0][0])+"/"+str(cache['attendance'][0][1])+")**"
         output = output + "\t60 Day: **" + str(
             math.ceil(100*int(cache['attendance'][1][0]) / int(cache['attendance'][1][1]))) + "% (" + \
@@ -119,7 +117,7 @@ class LootParse:
         output = output + "\tLifetime: **" + str(
             math.ceil(100*int(cache['attendance'][2][0]) / int(cache['attendance'][2][1]))) + "% (" + \
                  str(cache['attendance'][2][0]) + "/" + str(cache['attendance'][2][1]) + ")**"
-        output=output+"\n\tItems: "+str(len(cache['items']))+"\n"
+        output=output+"\n\t__Items__: "+str(len(cache['items']))+"\n"
         for item in cache['items']:
             output=output+"\t\t"+item['name']+"\t"+item['raid']+"\t"+item['date'].strftime("%d %B %y")+"\n"
 
