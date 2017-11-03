@@ -11,7 +11,7 @@ myowner="85512679678033920"
 description = '''LootBot - Queen of the loots'''
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=description,pm_help=True)
 loot=LootParse.LootParse()
-poop="💩"
+emotes={'thumbup': "👍🏾", 'punch': "👊🏾",'poop': "💩", 'moons': ["🌘", "🌗", "🌖", "🌕"]}
 counts = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '🔟','🇦', '🇧', '🇨',  '🇩',  '🇪', '🇫', '🇬', '🇭', '🇮', '🇯']
 checkbox = ['✅', '❌']
 varQuote=quotes.quotesClass()
@@ -113,33 +113,38 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
         return
 
     newchars=[]
+    charindex=0
     for char in character:
         if char not in newchars:
             newchars.append(char)
 
     if "yourmom" in newchars:
-        await bot.say(ctx.message.author.mention+" is "+poop)
+        await bot.say(ctx.message.author.mention+" is "+emotes['poop'])
         return
 
     lookup_list=[]
-    while len(newchars)>0:
-        output = ""
-        tempchars=newchars[:10]
-        newchars=newchars[10:]
-        hits=0
-        for char in tempchars:
-            if " " in char:
-                embedtitle=char
-            else:
-                try:
-                    output=output+counts[hits]+" "+str(loot.display(char))+"\n"
-                    hits=hits+1
-                except:
-                    print(sys.exc_info()[0])
-                    if do_show == True:
-                        output=output+"```I don't know who "+char+" is.  I blame you.```\n"
+    output = ""
+    hits = 0
+    while charindex<len(newchars):
+        char=newchars[charindex]
+        if " " in char:
+            embedtitle=char
+        else:
+            try:
+                newoutput=counts[hits]+" "+str(loot.display(char))+"\n"
+                hits=hits+1
+            except:
+                print(sys.exc_info()[0])
+                if do_show == True:
+                    newoutput="```I don't know who "+char+" is.  I blame you.```\n"
 
-        if len(output)>0:
+        if len(output+newoutput)>2000 or charindex==len(newchars)-1:
+            if len(output+newoutput)<2000:
+                output=output+newoutput
+                charindex+=1
+            else:
+                hits-=1
+
             embed = discord.Embed(title=embedtitle, description=output)
             if hasattr(ctx.message.author,"nick"):
                 if ctx.message.author.nick is not None:
@@ -148,7 +153,7 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
                     embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
             else:
                 embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
-            react = await bot.say(embed=embed)
+            react = await bot.send_message(ctx.message.channel,embed=embed)
             lookup_list.append(react.id)
 
             if hits>1:
@@ -157,6 +162,13 @@ async def do_lookup(ctx,character,do_show,embedtitle=""):
             if hits==1:
                 await bot.add_reaction(react, checkbox[0])
                 await bot.add_reaction(react, checkbox[1])
+            hits=0
+            output=""
+            newoutput=""
+        else:
+            output = output + newoutput
+            charindex += 1
+
     await bot.delete_message(ctx.message)
     return lookup_list
 

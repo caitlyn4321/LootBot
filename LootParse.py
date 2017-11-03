@@ -1,6 +1,7 @@
 import requests, re, html, math
 from datetime import datetime
 
+emotes={'thumbup': "👍🏾", 'punch': "👊🏾",'poop': "💩", 'moons': ["🌘", "🌗", "🌖", "🌕"]}
 
 class LootParse:
     characters={}
@@ -66,7 +67,6 @@ class LootParse:
         return self.characters[character.upper()]
 
     def cacheItems(self,character):
-        print(1)
         """Loads to loot table into the character table for a specific character"""
         if self.characters[character.upper()]['items_loaded']==1:
             return
@@ -94,7 +94,6 @@ class LootParse:
                 self.characters[charname]['items'].append(newitem)
             counter = counter + 1
         self.characters[character.upper()]['items_loaded'] = 1
-        print(2)
 
     def test(self):
         """Performs the item loading test against the characters table"""
@@ -103,15 +102,22 @@ class LootParse:
 
     def display(self,character):
         """Returns a formatted output for the character data passed to it."""
-        print(3)
         cache=self.getChar(character.upper())
         output="**"+cache['name']+"** ("+cache['class']+"/"+cache['rank']+")"
-        output=output+"\t30 Day: **"+ str(math.floor(100*int(cache['attendance'][0][0])/int(cache['attendance'][0][1])))+"% ("+str(cache['attendance'][0][0])+"/"+str(cache['attendance'][0][1])+")**"
+        thirtyatt=int(cache['attendance'][0][0])/int(cache['attendance'][0][1])
+        moons=emotes['moons'][3]
+        if thirtyatt < 1:
+            moons = emotes['moons'][2]
+        if thirtyatt <= .50:
+            moons = emotes['moons'][1]
+        if thirtyatt <= .35:
+            moons = emotes['moons'][0]
+        output=output+"\t"+moons+" 30 Day: **"+ str(math.ceil(100*int(cache['attendance'][0][0])/int(cache['attendance'][0][1])))+"% ("+str(cache['attendance'][0][0])+"/"+str(cache['attendance'][0][1])+")**"
         output = output + "\t60 Day: **" + str(
-            math.floor(100*int(cache['attendance'][1][0]) / int(cache['attendance'][1][1]))) + "% (" + \
+            math.ceil(100*int(cache['attendance'][1][0]) / int(cache['attendance'][1][1]))) + "% (" + \
                  str(cache['attendance'][1][0]) + "/" + str(cache['attendance'][1][1]) + ")**"
         output = output + "\tLifetime: **" + str(
-            math.floor(100*int(cache['attendance'][2][0]) / int(cache['attendance'][2][1]))) + "% (" + \
+            math.ceil(100*int(cache['attendance'][2][0]) / int(cache['attendance'][2][1]))) + "% (" + \
                  str(cache['attendance'][2][0]) + "/" + str(cache['attendance'][2][1]) + ")**"
         output=output+"\n\tItems: "+str(len(cache['items']))+"\n"
         for item in cache['items']:
