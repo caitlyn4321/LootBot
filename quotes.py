@@ -30,6 +30,7 @@ class QuotesClass:
         return len(self.quotes_list)
 
     def getindex(self):
+        """Finds the first available index to use"""
         for index in range(1, len(self.quotes_list)):
             if str(index) not in self.quotes_list.keys():
                 return index
