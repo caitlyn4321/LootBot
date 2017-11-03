@@ -105,7 +105,7 @@ class LootParse:
     def display(self, character):
         """Returns a formatted output for the character data passed to it."""
         cache = self.get_char(character.upper())
-        output = "**" + cache['name'] + "** (" + cache['class'] + "/" + cache['rank'] + ")"
+        output = "**{}** ({}/{})".format(cache['name'], cache['class'], cache['rank'])
         thirtyatt = int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])
         moons = static.emotes['moons'][3]
         if thirtyatt < 1:
@@ -114,19 +114,18 @@ class LootParse:
             moons = static.emotes['moons'][1]
         if thirtyatt <= .35:
             moons = static.emotes['moons'][0]
-        output = output + "\t" + moons + " 30 Day: **" + \
-                 str(math.ceil(100 * int(cache['attendance'][0][0]) / int(cache['attendance'][0][1]))) + "% (" + \
-                 str(cache['attendance'][0][0]) + "/" + str(cache['attendance'][0][1]) + ")**"
-        output = output + "\t60 Day: **" + \
-                 str(math.ceil(100 * int(cache['attendance'][1][0]) / int(cache['attendance'][1][1]))) + "% (" + \
-                 str(cache['attendance'][1][0]) + "/" + str(cache['attendance'][1][1]) + ")**"
-        output = output + "\tLifetime: **" + \
-                 str(math.ceil(100 * int(cache['attendance'][2][0]) / int(cache['attendance'][2][1]))) + "% (" + \
-                 str(cache['attendance'][2][0]) + "/" + str(cache['attendance'][2][1]) + ")**"
-        output = output + "\n\t__Items__: " + str(len(cache['items'])) + "\n"
+        output +="\t{} 30 Day: **{}% ({}/{})**"\
+            .format(moons, math.ceil(100 * int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])),
+                    cache['attendance'][0][0], cache['attendance'][0][1])
+        output += "\t60 Day: **{}% ({}/{})**"\
+            .format(math.ceil(100 * int(cache['attendance'][1][0]) / int(cache['attendance'][1][1])),
+                    cache['attendance'][1][0], cache['attendance'][1][1])
+        output += "\tLifetime Day: **{}% ({}/{})**"\
+            .format(math.ceil(100 * int(cache['attendance'][2][0]) / int(cache['attendance'][2][1])),
+                    cache['attendance'][2][0], cache['attendance'][2][1])
+        output += "\n\t__Items__: {}\n".format(len(cache['items']))
         for item in cache['items']:
-            output = output + "\t\t" + item['name'] + "\t" + item['raid'] + "\t" + item['date'].strftime(
-                "%d %B %y") + "\n"
+            output += "\t\t{}\t{}\t{}\n".format(item['name'], item['raid'], item['date'].strftime("%d %B %y"))
 
         return output
 

@@ -8,13 +8,12 @@ import quotes
 import datetime
 import asyncio
 import sys
+import traceback
 import static
 from discord.ext import commands
 
 # TODO : Update the bot to be a class for easier unit testing.
-# TODO : Clean the code up to PEP 8 standards for sharing
 # TODO : Create proper unit testing
-# TODO : Replace + string concatenation with .format
 # TODO : Change the bot.typing() to with statements.
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=static.description, pm_help=True)
@@ -44,7 +43,7 @@ def quote_to_embed(result):
             theauthor = themember.nick
     embed = discord.Embed(title="Quote #{}".format(result[4]), description=result[0])
     embed.set_author(name=theauthor, icon_url=themember.avatar_url)
-    embed.set_footer(text="Saved on: " + thedate.strftime("%d %B %y"))
+    embed.set_footer(text="Saved on: {}".format(thedate.strftime("%d %B %y")))
     return embed
 
 
@@ -69,7 +68,7 @@ async def test(ctx):
             loot.test()
         except:
             errors += 1
-        await bot.say("Test complete.  There were " + str(errors) + " exceptions seen.")
+        await bot.say("Test complete.  There were {} exceptions seen.".format( errors))
     else:
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
         await bot.say("This command has only runs for my owner.  There are not a lot of good reasons to run it.")
@@ -82,12 +81,7 @@ async def pr(ctx):
     await bot.type()
     if str(ctx.message.author.id) == static.myowner:
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-        errors = 0
-        try:
-            print(ctx.message.content)
-        except:
-            errors += 1
-        await bot.say("Test complete.  There were " + str(errors) + " exceptions seen.")
+        print(ctx.message.content)
     else:
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
         await bot.say("This command has only runs for my owner.  There are not a lot of good reasons to run it.")
@@ -99,7 +93,7 @@ async def owner(ctx):
     await bot.type()
     mymention = await bot.get_user_info(static.myowner)
     if str(ctx.message.author.id) == static.myowner:
-        await bot.say("You, " + mymention.mention + " are my owner.")
+        await bot.say("You, {} are my owner.".format(mymention.mention))
     else:
         await bot.say(mymention.mention + " is my owner.")
 
@@ -135,7 +129,7 @@ async def do_lookup(ctx, character, do_show, embedtitle=""):
             newchars.append(char)
 
     if "yourmom" in newchars:
-        await bot.say(ctx.message.author.mention + " is " + static.emotes['poop'])
+        await bot.say("{} is {}".format(ctx.message.author.mention, static.emotes['poop']))
         return
 
     lookup_list = []
@@ -147,12 +141,13 @@ async def do_lookup(ctx, character, do_show, embedtitle=""):
             embedtitle = char
         else:
             try:
-                newoutput = static.emotes['counts'][hits] + " " + str(loot.display(char)) + "\n"
+                newoutput ="{} {}\n".format(static.emotes['counts'][hits], loot.display(char))
                 hits += 1
             except:
                 print(sys.exc_info()[0])
+                #traceback.print_exc(sys.exc_info())
                 if do_show is True:
-                    newoutput = "```I don't know who " + char + " is.  I blame you.```\n"
+                    newoutput = "```I don't know who {} is.  I blame you.```\n".format(char)
 
         if len(output + newoutput) > 2000 or charindex == len(newchars) - 1:
             if len(output + newoutput) < 2000:
@@ -271,28 +266,6 @@ async def item(*itemname: str):
     await bot.say(
         "Just google it,  this command is stupid: http://lmgtfy.com/?q={}".format(html.escape('+'.join(itemname))))
     return
-    reqWEB = requests.get('http://everquest.allakhazam.com/ihtml?' + html.escape('+'.join(itemname)))
-    counter = 0
-    webLines = reqWEB.text.splitlines()
-    itemtitle = ""
-    image = ""
-
-    while counter < len(webLines):
-        if "<img " in webLines[counter]:
-            m = re.search("src=\"(.+)\" class=\"zam-icon", webLines[counter])
-            image = m.group(1)
-            m = re.search("iname\">(.+)</span>", webLines[counter + 1])
-            itemtitle = m.group(1)
-            break
-        counter = counter + 1
-
-    newwebLines = webLines[counter + 2:-4]
-    outstring = '\n'.join(newwebLines)
-    outstring = re.sub("<[\w\/\"\ \?\=]+>", "", outstring)
-    embed = discord.Embed(title=itemtitle, description=outstring)
-    embed.set_thumbnail(url=image)
-    await bot.say(embed=embed)
-    await bot.delete_message(ctx.message)
 
 
 @bot.command(pass_context=True, description="Insults people")
@@ -321,7 +294,7 @@ async def quote_add(ctx, *message: str):
     """Adds a new quote to the database"""
     await bot.type()
     num = varQuote.add([' '.join(message), ctx.message.author.id, ctx.message.channel.id])
-    await bot.say("Quote #" + str(num) + " has been added.")
+    await bot.say("Quote #{} has been added.".format(num))
 
 
 @bot.command(pass_context=True, description="Delete a quote")
@@ -341,7 +314,7 @@ async def quote_get(ctx, num: int):
     await bot.type()
     result = varQuote.get_quote(num)
     if result == -1:
-        await bot.say("Quote #" + str(num) + " is not found..")
+        await bot.say("Quote #{} is not found..".format(num))
     else:
         await bot.say(embed=quote_to_embed(result))
         await bot.delete_message(ctx.message)
