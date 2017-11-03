@@ -7,9 +7,7 @@ from discord.ext import commands
 # TODO : Replace + string concatenation with .format
 # TODO : Change the bot.typing() to with statements.
 
-myowner="85512679678033920"
-description = '''LootBot - Queen of the loots'''
-bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=description,pm_help=True)
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=static.description,pm_help=True)
 loot=LootParse.LootParse()
 varQuote=quotes.quotesClass()
 
@@ -50,7 +48,7 @@ async def on_ready():
 async def test(ctx):
     """Runs a test by loading every persons items and reporting failures"""
     await bot.type()
-    if str(ctx.message.author.id) == myowner:
+    if str(ctx.message.author.id) == static.myowner:
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
         errors=0
         try:
@@ -66,7 +64,7 @@ async def test(ctx):
 async def pr(ctx):
     """Prints a message to the console.  Useful for finding out what unicode emotes translate to"""
     await bot.type()
-    if str(ctx.message.author.id) == myowner:
+    if str(ctx.message.author.id) == static.myowner:
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
         errors=0
         try:
@@ -82,8 +80,8 @@ async def pr(ctx):
 async def owner(ctx):
     """Page the bot owner"""
     await bot.type()
-    mymention= await bot.get_user_info(myowner)
-    if str(ctx.message.author.id) == myowner:
+    mymention= await bot.get_user_info(static.myowner)
+    if str(ctx.message.author.id) == static.myowner:
         await bot.say("You, "+mymention.mention+" are my owner.")
     else:
         await bot.say(mymention.mention + " is my owner.")
@@ -276,7 +274,7 @@ async def insult(ctx):
 async def update_status(ctx,*messages : str):
     """Updats the status that the bot displays"""
     await bot.type()
-    if str(ctx.message.author.id) == myowner:
+    if str(ctx.message.author.id) == static.myowner:
         await bot.change_presence(game=discord.Game(name=' '.join(messages)))
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
     else:
@@ -293,7 +291,7 @@ async def quote_add(ctx,*message : str):
 async def quote_del(ctx,num : int):
     """Deletes a specific quote from a database"""
     await bot.type()
-    if str(ctx.message.author.id) == myowner:
+    if str(ctx.message.author.id) == static.myowner:
         varQuote.delete(num)
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
     else:
@@ -402,7 +400,7 @@ async def wait_for_poll(ctx,ids,minutes):
 async def say(ctx, *message : str):
     """Repeats something"""
     await bot.type()
-    if str(ctx.message.author.id) == myowner:
+    if str(ctx.message.author.id) == static.myowner:
         await bot.say(' '.join(message))
         await bot.delete_message(ctx.message)
 
