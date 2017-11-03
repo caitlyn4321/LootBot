@@ -1,9 +1,14 @@
-import requests, re, html, math,static
+import requests
+import re
+import html
+import math
+import static
 from datetime import datetime
 
+
 class LootParse:
-    characters={}
-    fully_loaded=0
+    characters = {}
+    fully_loaded = 0
 
     def __init__(self):
         """Startup of the loot parser.  Initial values"""
@@ -13,126 +18,128 @@ class LootParse:
         """Performs the actual reload of the character data"""
         try:
 
-            reqAPI = requests.get('https://theancientcoalition.com/api.php?function=points&format=json').json()
-            reqWEB = requests.get('https://theancientcoalition.com/index.php/Points/?show_twinks=1')
+            req_api = requests.get('https://theancientcoalition.com/api.php?function=points&format=json').json()
+            req_web = requests.get('https://theancientcoalition.com/index.php/Points/?show_twinks=1')
 
-            self.characters={}
+            self.characters = {}
 
-            for character in reqAPI['players'].values():
-                thischaracter={}
-                thischaracter["id"]=character["id"]
-                thischaracter['name'] = character['name']
-                thischaracter['class'] = character['class_name']
-                thischaracter['items'] = []
-                thischaracter['items_loaded'] = 0
-                self.characters[character['name'].upper()]=thischaracter
+            for character in req_api['players'].values():
+                thischaracter = {"id": character["id"],
+                                 'name': character['name'],
+                                 'class': character['class_name'],
+                                 'items': [],
+                                 'items_loaded': 0}
+                self.characters[character['name'].upper()] = thischaracter
 
-            webLines=reqWEB.text.splitlines()
-            counter=0
+            web_lines = req_web.text.splitlines()
+            counter = 0
 
-            while counter<len(webLines):
-                if "<td ><a href=\"/index.php/Character/" in webLines[counter]:
-                    m=re.search("(\w+)</a>",webLines[counter])
-                    charname=m.group(1)
-                    attendance=[]
+            while counter < len(web_lines):
+                if "<td ><a href=\"/index.php/Character/" in web_lines[counter]:
+                    m = re.search("(\w+)</a>", web_lines[counter])
+                    charname = m.group(1)
+                    attendance = []
                     p = re.compile("\">(.*)</td>")
-                    m = p.search(webLines[counter + 2])
+                    m = p.search(web_lines[counter + 2])
                     self.characters[charname.upper()]['rank'] = m.group(1)
                     p = re.compile("(\d+)/(\d+)")
-                    m = p.search(webLines[counter+3])
-                    att=m.group(1,2)
-                    attendance.append([int(att[0]),int(att[1])])
-                    m = p.search( webLines[counter + 4])
+                    m = p.search(web_lines[counter + 3])
                     att = m.group(1, 2)
                     attendance.append([int(att[0]), int(att[1])])
-                    m = p.search( webLines[counter + 5])
+                    m = p.search(web_lines[counter + 4])
                     att = m.group(1, 2)
                     attendance.append([int(att[0]), int(att[1])])
-                    self.characters[charname.upper()]['attendance']=attendance
-                    counter=counter+4
-                counter=counter+1
-            self.fully_loaded=1
+                    m = p.search(web_lines[counter + 5])
+                    att = m.group(1, 2)
+                    attendance.append([int(att[0]), int(att[1])])
+                    self.characters[charname.upper()]['attendance'] = attendance
+                    counter += 4
+                counter += 1
+            self.fully_loaded = 1
         except:
-            self.fully_loaded=0
+            self.fully_loaded = 0
 
     def is_loaded(self):
         """A function which allows outside functions to know whether the character database is loaded"""
         return self.fully_loaded
 
-    def getChar(self,character):
+    def get_char(self, character):
         """Returns the raw data for a specific character"""
-        self.cacheItems(character)
+        self.cache_items(character)
         return self.characters[character.upper()]
 
-    def cacheItems(self,character):
+    def cache_items(self, character):
         """Loads to loot table into the character table for a specific character"""
-        if self.characters[character.upper()]['items_loaded']==1:
+        if self.characters[character.upper()]['items_loaded'] == 1:
             return
-        reqWEB = requests.get('https://theancientcoalition.com/index.php/Items/?search_type=buyer&search='+character)
-        counter=0
-        webLines = reqWEB.text.splitlines()
+        req_web = requests.get('https://theancientcoalition.com/index.php/Items/?search_type=buyer&search=' + character)
+        counter = 0
+        web_lines = req_web.text.splitlines()
 
-        while counter < len(webLines):
-            if "<td class=\"hiddenSmartphone twinktd\">Items</td>" in webLines[counter]:
-                m = re.search("<td >(\w+)</td>", webLines[counter-3])
+        while counter < len(web_lines):
+            if "<td class=\"hiddenSmartphone twinktd\">Items</td>" in web_lines[counter]:
+                m = re.search("<td >(\w+)</td>", web_lines[counter - 3])
                 charname = m.group(1).upper()
 
-                newitem={}
-                if "img" in webLines[counter - 2]:
-                    m = re.search("> (.+)</span></a></td>", webLines[counter - 2])
+                newitem = {}
+                if "img" in web_lines[counter - 2]:
+                    m = re.search("> (.+)</span></a></td>", web_lines[counter - 2])
                 else:
-                    m = re.search("title=\"\w+\">\s?(.+)</span></a></td>", webLines[counter - 2])
-                newitem['name']=html.unescape(m.group(1))
-                m = re.search("\">(.+)</a></td>", webLines[counter - 1])
+                    m = re.search("title=\"\w+\">\s?(.+)</span></a></td>", web_lines[counter - 2])
+                newitem['name'] = html.unescape(m.group(1))
+                m = re.search("\">(.+)</a></td>", web_lines[counter - 1])
                 newitem['raid'] = html.unescape(m.group(1))
-                m = re.search("<td >(.+)</td>", webLines[counter - 4])
+                m = re.search("<td >(.+)</td>", web_lines[counter - 4])
                 raiddate = m.group(1)
                 datetime_object = datetime.strptime(raiddate, '%m.%d.%y')
                 newitem['date'] = datetime_object.date()
                 self.characters[charname]['items'].append(newitem)
-            counter = counter + 1
+            counter += 1
         self.characters[character.upper()]['items_loaded'] = 1
 
     def test(self):
         """Performs the item loading test against the characters table"""
         for character in self.characters.keys():
-            print (self.getChar(character))
+            print(self.get_char(character))
 
-    def display(self,character):
+    def display(self, character):
         """Returns a formatted output for the character data passed to it."""
-        cache=self.getChar(character.upper())
-        output="**"+cache['name']+"** ("+cache['class']+"/"+cache['rank']+")"
-        thirtyatt=int(cache['attendance'][0][0])/int(cache['attendance'][0][1])
-        moons=static.emotes['moons'][3]
+        cache = self.get_char(character.upper())
+        output = "**" + cache['name'] + "** (" + cache['class'] + "/" + cache['rank'] + ")"
+        thirtyatt = int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])
+        moons = static.emotes['moons'][3]
         if thirtyatt < 1:
             moons = static.emotes['moons'][2]
         if thirtyatt <= .50:
             moons = static.emotes['moons'][1]
         if thirtyatt <= .35:
             moons = static.emotes['moons'][0]
-        output=output+"\t"+moons+" 30 Day: **"+ str(math.ceil(100*int(cache['attendance'][0][0])/int(cache['attendance'][0][1])))+"% ("+str(cache['attendance'][0][0])+"/"+str(cache['attendance'][0][1])+")**"
-        output = output + "\t60 Day: **" + str(
-            math.ceil(100*int(cache['attendance'][1][0]) / int(cache['attendance'][1][1]))) + "% (" + \
+        output = output + "\t" + moons + " 30 Day: **" + \
+                 str(math.ceil(100 * int(cache['attendance'][0][0]) / int(cache['attendance'][0][1]))) + "% (" + \
+                 str(cache['attendance'][0][0]) + "/" + str(cache['attendance'][0][1]) + ")**"
+        output = output + "\t60 Day: **" + \
+                 str(math.ceil(100 * int(cache['attendance'][1][0]) / int(cache['attendance'][1][1]))) + "% (" + \
                  str(cache['attendance'][1][0]) + "/" + str(cache['attendance'][1][1]) + ")**"
-        output = output + "\tLifetime: **" + str(
-            math.ceil(100*int(cache['attendance'][2][0]) / int(cache['attendance'][2][1]))) + "% (" + \
+        output = output + "\tLifetime: **" + \
+                 str(math.ceil(100 * int(cache['attendance'][2][0]) / int(cache['attendance'][2][1]))) + "% (" + \
                  str(cache['attendance'][2][0]) + "/" + str(cache['attendance'][2][1]) + ")**"
-        output=output+"\n\t__Items__: "+str(len(cache['items']))+"\n"
+        output = output + "\n\t__Items__: " + str(len(cache['items'])) + "\n"
         for item in cache['items']:
-            output=output+"\t\t"+item['name']+"\t"+item['raid']+"\t"+item['date'].strftime("%d %B %y")+"\n"
+            output = output + "\t\t" + item['name'] + "\t" + item['raid'] + "\t" + item['date'].strftime(
+                "%d %B %y") + "\n"
 
         return output
 
-    def classes(self,classtype):
+    def classes(self, classtype):
         """Search the characters table for a list of names of those matching a class"""
-        results=[]
+        results = []
         for character in self.characters.values():
-            doappend=""
+            doappend = ""
             if character['class'].upper() == classtype.upper():
-                doappend=character['name']
+                doappend = character['name']
             if "rank" in character.keys():
                 if character['rank'].upper() == classtype.upper():
-                    doappend=character['name']
-            if len(doappend)>0:
+                    doappend = character['name']
+            if len(doappend) > 0:
                 results.append(doappend)
         return results

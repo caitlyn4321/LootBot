@@ -113,7 +113,8 @@ async def reload():
 
 
 @bot.command(pass_context=True,
-             description="Looks up the loot history for a person or list of people.  Put a question/title in quotes first for a header.",
+             description="Looks up the loot history for a person or list of people.  "
+                         "Put a question/title in quotes first for a header.",
              aliases=["Lookup"])
 async def lookup(ctx, *character: str):
     """The Bot command to perform a character lookup"""
@@ -147,10 +148,10 @@ async def do_lookup(ctx, character, do_show, embedtitle=""):
         else:
             try:
                 newoutput = static.emotes['counts'][hits] + " " + str(loot.display(char)) + "\n"
-                hits = hits + 1
+                hits += 1
             except:
                 print(sys.exc_info()[0])
-                if do_show == True:
+                if do_show is True:
                     newoutput = "```I don't know who " + char + " is.  I blame you.```\n"
 
         if len(output + newoutput) > 2000 or charindex == len(newchars) - 1:
@@ -198,7 +199,8 @@ async def poll(ctx, question, *options: str):
 
 
 @bot.command(pass_context=True,
-             description="Do a simple poll.  Ask your question and list options after.  Anything with spaces must have quotes around it",
+             description="Do a simple poll.  Ask your question and list options after.  "
+                         "Anything with spaces must have quotes around it",
              aliases=["tp"])
 async def timed_poll(ctx, question, minutes: int, *options: str):
     """Creates a timed poll that members can vote on with emotes."""
@@ -357,8 +359,8 @@ async def quote(ctx):
         await bot.delete_message(ctx.message)
 
 
-@bot.command(pass_context=True, description="Show the number of quotes in the database")
-async def quote_count(ctx):
+@bot.command(description="Show the number of quotes in the database")
+async def quote_count():
     """Count the quotes in the database"""
     await bot.type()
     result = varQuote.count()
@@ -377,15 +379,15 @@ async def clookup(ctx, classtype):
 
 
 @bot.command(pass_context=True)
-async def tally(ctx, *id):
+async def tally(ctx, *msgid):
     """Tally the votes for a poll"""
-    await do_tally(ctx, id)
+    await do_tally(ctx, msgid)
 
 
 async def do_tally(ctx, ids):
     """This is the backend that supports the tallying of polls and loot council votes"""
-    for id in ids:
-        poll_message = await bot.get_message(ctx.message.channel, id)
+    for msgid in ids:
+        poll_message = await bot.get_message(ctx.message.channel, msgid)
         if poll_message.embeds:
             title = poll_message.embeds[0]['title']
         else:
@@ -410,7 +412,8 @@ async def do_tally(ctx, ids):
 
 
 @bot.command(pass_context=True,
-             description="Starts a loot council timed poll using the loot history for a person or list of people.  Put a question/title in quotes first for a header.",
+             description="Starts a loot council timed poll using the loot history for a person or list of people.  "
+                         "Put a question/title in quotes first for a header.",
              aliases=["Lc", "LC"])
 async def lc(ctx, title, minutes: int, *character: str):
     """Initiates a loot council vote"""
