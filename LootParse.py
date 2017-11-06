@@ -105,17 +105,18 @@ class LootParse:
     def display(self, character):
         """Returns a formatted output for the character data passed to it."""
         cache = self.get_char(character.upper())
+        print("display: {}".format(character))
         output = "**{}** ({}/{})".format(cache['name'], cache['class'], cache['rank'])
         thirtyatt = int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])
-        moons = static.emotes['moons'][3]
-        if thirtyatt < 1:
-            moons = static.emotes['moons'][2]
+        emote = static.emotes['90']
+        if thirtyatt < .9:
+            emote = static.emotes['50']
         if thirtyatt <= .50:
-            moons = static.emotes['moons'][1]
+            emote = static.emotes['35']
         if thirtyatt <= .35:
-            moons = static.emotes['moons'][0]
+            emote = static.emotes['0_']
         output +="\t{} 30 Day: **{}% ({}/{})**"\
-            .format(moons, math.ceil(100 * int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])),
+            .format(emote, math.ceil(100 * int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])),
                     cache['attendance'][0][0], cache['attendance'][0][1])
         output += "\t60 Day: **{}% ({}/{})**"\
             .format(math.ceil(100 * int(cache['attendance'][1][0]) / int(cache['attendance'][1][1])),

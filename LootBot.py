@@ -148,6 +148,8 @@ async def do_lookup(ctx, character, do_show, embedtitle=""):
                 #traceback.print_exc(sys.exc_info())
                 if do_show is True:
                     newoutput = "```I don't know who {} is.  I blame you.```\n".format(char)
+                else:
+                    newoutput = ""
 
         if len(output + newoutput) > 2000 or charindex == len(newchars) - 1:
             if len(output + newoutput) < 2000:
