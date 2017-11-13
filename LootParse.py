@@ -109,7 +109,9 @@ class LootParse:
         output = "**{}** ({}/{})".format(cache['name'], cache['class'], cache['rank'])
         thirtyatt = int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])
         emote = static.emotes['90']
-        if thirtyatt < .9:
+        if thirtyatt <= .9:
+            emote = static.emotes['75']
+        if thirtyatt <= .75:
             emote = static.emotes['50']
         if thirtyatt <= .50:
             emote = static.emotes['35']
