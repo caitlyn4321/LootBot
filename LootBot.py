@@ -10,6 +10,7 @@ import asyncio
 import sys
 import traceback
 import static
+import testreplace
 from discord.ext import commands
 
 # TODO : Update the bot to be a class for easier unit testing.
@@ -19,6 +20,7 @@ from discord.ext import commands
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=static.description, pm_help=True)
 loot = LootParse.LootParse()
 varQuote = quotes.QuotesClass()
+varResponse = testreplace.WordResponse()
 
 
 def dict_to_embed(starting):
@@ -46,6 +48,16 @@ def quote_to_embed(result):
     embed.set_footer(text="Saved on: {}".format(thedate.strftime("%d %B %y")))
     return embed
 
+async def check_permissions(user,name):
+    for role in user.roles:
+        if name.upper() is role.name.upper():
+            print("role found")
+            return True
+        if str(user.id) == static.myowner:
+            print("role not found, but is owner")
+            return True
+    print("role not found, is not owner")
+    return False
 
 @bot.event
 async def on_ready():
@@ -55,6 +67,28 @@ async def on_ready():
     print(bot.user.id)
     print('------')
 
+@bot.event
+async def on_message(message):
+    """ Process messages"""
+    await bot.process_commands(message)
+    if message.author != bot.user:
+        response=varResponse.check(message.content)
+        if response is not None:
+            await bot.send_message(message.channel, response)
+
+@bot.command(pass_context=True)
+async def response_add(ctx, word: str, *words: str):
+    """Repeats something"""
+    if await check_permissions(ctx.message.author,"Loot Council") is True:
+        await bot.type()
+        varResponse.add(word,words)
+
+@bot.command(pass_context=True)
+async def response_del(ctx, word: str):
+    """Repeats something"""
+    if await check_permissions(ctx.message.author, "Loot Council") is True:
+        await bot.type()
+        varResponse.delete(word)
 
 @bot.command(hidden=True, pass_context=True,
              description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")

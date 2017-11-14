@@ -15,8 +15,11 @@ class DataStore(dict):
         """Load the JSON formatted database"""
         if len(filename) == 0:
             filename = self._filename
-        with open(filename) as json_data_file:
-            super(DataStore, self).update(json.load(json_data_file))
+        try:
+            with open(filename) as json_data_file:
+                super(DataStore, self).update(json.load(json_data_file))
+        except:
+            pass
 
     def save(self, filename=""):
         """Save the JSON formatted database"""
