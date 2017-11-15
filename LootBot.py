@@ -49,14 +49,23 @@ def quote_to_embed(result):
     return embed
 
 async def check_permissions(user,name):
-    for role in user.roles:
-        if name.upper() is role.name.upper():
-            print("role found")
-            return True
-        if str(user.id) == static.myowner:
-            print("role not found, but is owner")
-            return True
+    if hasattr(user, "roles"):
+        for role in user.roles:
+            if name.upper() == role.name.upper():
+                print("role found")
+                return True
+    if str(user.id) == static.myowner:
+        print("role not found, but is owner")
+        return True
     print("role not found, is not owner")
+    return False
+
+async def is_bot(user):
+    if hasattr(user,"roles"):
+        for role in user.roles:
+            if "BOTS" == role.name.upper():
+                print("bot found")
+                return True
     return False
 
 @bot.event
@@ -72,9 +81,10 @@ async def on_message(message):
     """ Process messages"""
     await bot.process_commands(message)
     if message.author != bot.user:
-        response=varResponse.check(message.content)
-        if response is not None:
-            await bot.send_message(message.channel, response)
+        if await is_bot(message.author) is False:
+            response=varResponse.check(message.content)
+            if response is not None:
+                await bot.send_message(message.channel, response)
 
 @bot.command(pass_context=True)
 async def response_add(ctx, word: str, *words: str):
@@ -95,7 +105,7 @@ async def response_del(ctx, word: str):
 async def test(ctx):
     """Runs a test by loading every persons items and reporting failures"""
     await bot.type()
-    if str(ctx.message.author.id) == static.myowner:
+    if await check_permissions(ctx.message.author, "Loot Council") is True:
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
         errors = 0
         try:
@@ -168,6 +178,7 @@ async def do_lookup(ctx, character, do_show, embedtitle=""):
 
     lookup_list = []
     output = ""
+    newoutput=""
     hits = 0
     while charindex < len(newchars):
         char = newchars[charindex]
@@ -187,7 +198,7 @@ async def do_lookup(ctx, character, do_show, embedtitle=""):
 
         if len(output + newoutput) > 2000 or charindex == len(newchars) - 1:
             if len(output + newoutput) < 2000:
-                output = output + newoutput
+                output += newoutput
                 charindex += 1
             else:
                 hits -= 1
@@ -318,7 +329,7 @@ async def insult(ctx):
 async def update_status(ctx, *messages: str):
     """Updats the status that the bot displays"""
     await bot.type()
-    if str(ctx.message.author.id) == static.myowner:
+    if await check_permissions(ctx.message.author, "Loot Council") is True:
         await bot.change_presence(game=discord.Game(name=' '.join(messages)))
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
     else:
@@ -337,7 +348,7 @@ async def quote_add(ctx, *message: str):
 async def quote_del(ctx, num: int):
     """Deletes a specific quote from a database"""
     await bot.type()
-    if str(ctx.message.author.id) == static.myowner:
+    if await check_permissions(ctx.message.author, "Loot Council") is True:
         varQuote.delete(num)
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
     else:
@@ -456,7 +467,7 @@ async def wait_for_poll(ctx, ids, minutes):
 async def say(ctx, *message: str):
     """Repeats something"""
     await bot.type()
-    if str(ctx.message.author.id) == static.myowner:
+    if await check_permissions(ctx.message.author, "Loot Council") is True:
         await bot.say(' '.join(message))
         await bot.delete_message(ctx.message)
 
