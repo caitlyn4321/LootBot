@@ -2,7 +2,7 @@ import secrets
 import discord
 import LootParse
 import html
-import re
+import eqserverstatus
 import requests
 import quotes
 import datetime
@@ -21,6 +21,7 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=s
 loot = LootParse.LootParse()
 varQuote = quotes.QuotesClass()
 varResponse = testreplace.WordResponse()
+varEQStatus = eqserverstatus.EQServerStatus()
 
 
 def dict_to_embed(starting):
@@ -85,6 +86,17 @@ async def on_message(message):
             response=varResponse.check(message.content)
             if response is not None:
                 await bot.send_message(message.channel, response)
+
+@bot.command(pass_context=True)
+async def status(ctx):
+    await bot.type()
+    result = varEQStatus.check()
+    if (result is True) or (result is False):
+        await bot.say("Agnarr's current population/status is {} as of {}"
+                      .format(varEQStatus.state,varEQStatus.time.strftime("%H:%M")))
+    else:
+        await bot.say("There is an issue retrieving the current Agnarr status, "
+                      "or status calls may be too close together")
 
 @bot.command(pass_context=True)
 async def response_add(ctx, word: str, *words: str):
