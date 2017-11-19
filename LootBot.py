@@ -92,6 +92,9 @@ async def response_add(ctx, word: str, *words: str):
     if await check_permissions(ctx.message.author,"Loot Council") is True:
         await bot.type()
         varResponse.add(word,words)
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
+    else:
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
 
 @bot.command(pass_context=True)
 async def response_del(ctx, word: str):
@@ -99,6 +102,9 @@ async def response_del(ctx, word: str):
     if await check_permissions(ctx.message.author, "Loot Council") is True:
         await bot.type()
         varResponse.delete(word)
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
+    else:
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
 
 @bot.command(hidden=True, pass_context=True,
              description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")

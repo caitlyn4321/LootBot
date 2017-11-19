@@ -42,10 +42,9 @@ class WordResponse:
         else:
             return False
 
-    def check(self, *words: str):
+    def check(self, words: str):
         """Return a specific quote"""
         for word in self.response_list.keys():
-            if word.upper() in ''.join(words).upper():
+            if word.upper() in words.upper():
                 return self.response_list[word.upper()]
-            else:
-                return None
+        return None

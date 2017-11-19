@@ -123,7 +123,7 @@ class LootParse:
         output += "\t60 Day: **{}% ({}/{})**"\
             .format(math.ceil(100 * int(cache['attendance'][1][0]) / int(cache['attendance'][1][1])),
                     cache['attendance'][1][0], cache['attendance'][1][1])
-        output += "\tLifetime Day: **{}% ({}/{})**"\
+        output += "\tLifetime: **{}% ({}/{})**"\
             .format(math.ceil(100 * int(cache['attendance'][2][0]) / int(cache['attendance'][2][1])),
                     cache['attendance'][2][0], cache['attendance'][2][1])
         output += "\n\t__Items__: {}\n".format(len(cache['items']))
