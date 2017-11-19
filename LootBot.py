@@ -76,6 +76,8 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
+    bot.loop.create_task(timed_status(discord.Object(id=static.bottest)))
+
 
 @bot.event
 async def on_message(message):
@@ -480,6 +482,17 @@ async def wait_for_poll(ctx, ids, minutes):
             await bot.clear_reactions(poll_message)
     return
 
+async def timed_status(channel):
+    """This is the async background task created to close the poll out after a specific time."""
+    await bot.wait_until_ready()
+    while not bot.is_closed:
+        await asyncio.sleep(60)
+        result = varEQStatus.check()
+        if result is True:
+            await bot.send_message(channel,"Agnarr's current population/status is {} as of {}"
+                          .format(varEQStatus.state, varEQStatus.time.strftime("%H:%M")))
+        await bot.change_presence(game=discord.Game(name='Agnarr: {} @ {}'.format(varEQStatus.state, varEQStatus.time.strftime("%H:%M"))))
+    return
 
 @bot.command(pass_context=True, hidden=True)
 async def say(ctx, *message: str):
