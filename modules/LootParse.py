@@ -3,6 +3,11 @@ import re
 import html
 import math
 import static
+import discord
+import sys
+import random
+import LootBot
+from discord.ext import commands
 from datetime import datetime
 
 
@@ -10,11 +15,12 @@ class LootParse:
     characters = {}
     fully_loaded = 0
 
-    def __init__(self):
+    def __init__(self, bot):
         """Startup of the loot parser.  Initial values"""
-        self.reload()
+        self.bot=bot
+        self.reload_loot()
 
-    def reload(self):
+    def reload_loot(self):
         """Performs the actual reload of the character data"""
         try:
 
@@ -145,3 +151,124 @@ class LootParse:
             if len(doappend) > 0:
                 results.append(doappend)
         return results
+
+    @commands.command(pass_context=True, description="Lookup by class", aliases=["csearch", "class_lookup"])
+    async def clookup(self, ctx, classtype):
+        """Perform a lookup on everyone of a single class type"""
+        await self.bot.type()
+        result = self.classes(classtype)
+        if len(result) == 0:
+            await self.bot.say("That class wasn't found")
+        else:
+            await self.do_lookup(ctx, result, False)
+
+    @commands.command(description="Clear the memory and start over fresh")
+    async def reload(self):
+        """Performs a reload of the character table"""
+        await self.bot.type()
+        self.reload_loot()
+        await self.bot.say("reload complete")
+
+    @commands.command(pass_context=True,
+                 description="Looks up the loot history for a person or list of people.  "
+                             "Put a question/title in quotes first for a header.",
+                 aliases=["Lookup"])
+    async def lookup(self, ctx, *character: str):
+        """The Bot command to perform a character lookup"""
+        await self.do_lookup(ctx, character, True)
+
+    async def do_lookup(self, ctx, character, do_show, embedtitle=""):
+        """The function that actually does the lookups.  Shared between multiple functions"""
+        await self.bot.type()
+        if not self.is_loaded():
+            await self.bot.say("I am currently not fully loaded.  Please !reload when I am not broken")
+            return
+
+        newchars = []
+        charindex = 0
+        for char in character:
+            if char not in newchars:
+                newchars.append(char)
+
+        if "yourmom" in newchars:
+            await self.bot.say("{} is {}".format(ctx.message.author.mention, static.emotes['poop']))
+            return
+
+        lookup_list = []
+        output = ""
+        newoutput = ""
+        hits = 0
+        while charindex < len(newchars):
+            char = newchars[charindex]
+            if " " in char:
+                embedtitle = char
+            else:
+                try:
+                    newoutput = "{} {}\n".format(static.emotes['counts'][hits], self.display(char))
+                    hits += 1
+                except:
+                    print(sys.exc_info()[0])
+                    # traceback.print_exc(sys.exc_info())
+                    if do_show is True:
+                        newoutput = "```I don't know who {} is.  I blame you.```\n".format(char)
+                    else:
+                        newoutput = ""
+
+            if len(output + newoutput) > 2000 or charindex == len(newchars) - 1:
+                if len(output + newoutput) < 2000:
+                    output += newoutput
+                    charindex += 1
+                else:
+                    hits -= 1
+
+                embed = discord.Embed(title=embedtitle, description=output)
+                if hasattr(ctx.message.author, "nick"):
+                    if ctx.message.author.nick is not None:
+                        embed.set_author(name=ctx.message.author.nick, icon_url=ctx.message.author.avatar_url)
+                    else:
+                        embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
+                else:
+                    embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
+                react = await self.bot.send_message(ctx.message.channel, embed=embed)
+                lookup_list.append(react.id)
+
+                if hits > 1:
+                    for reaction in static.emotes['counts'][:hits]:
+                        await self.bot.add_reaction(react, reaction)
+                if hits == 1:
+                    await self.bot.add_reaction(react, static.emotes['checkbox'][0])
+                    await self.bot.add_reaction(react, static.emotes['checkbox'][1])
+                hits = 0
+                output = ""
+                newoutput = ""
+            else:
+                output = output + newoutput
+                charindex += 1
+
+        await self.bot.delete_message(ctx.message)
+        if len(newchars) > 1:
+            await self.bot.send_message(ctx.message.channel,
+                                   "Suggested winner, picked at random: {}".format(random.choice(character)))
+        return lookup_list
+
+    @bot.command(hidden=True, pass_context=True,
+                 description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")
+    async def test(self, ctx):
+        """Runs a test by loading every persons items and reporting failures"""
+        await self.bot.type()
+        if await LootBot.check_permissions(ctx.message.author, "Loot Council") is True:
+            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
+            errors = 0
+            try:
+                self.test()
+            except:
+                errors += 1
+            await self.bot.say("Test complete.  There were {} exceptions seen.".format(errors))
+        else:
+            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
+            await self.bot.say("This command has only runs for my owner.  There are not a lot of good reasons to run it.")
+
+
+
+def setup(bot):
+    bot.add_cog(LootParse(bot=bot))

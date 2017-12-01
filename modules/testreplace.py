@@ -1,5 +1,6 @@
 import datastore
 import LootBot
+import static
 from discord.ext import commands
 
 class WordResponse:
@@ -60,7 +61,7 @@ class WordResponse:
 
     @commands.command(pass_context=True)
     async def response_add(self,ctx, word: str, *words: str):
-        """Repeats something"""
+        """Add a new response"""
         if await LootBot.check_permissions(ctx.message.author, "Loot Council") is True:
             await self.bot.type()
             self.add(word, words)
@@ -70,7 +71,7 @@ class WordResponse:
 
     @commands.command(pass_context=True)
     async def response_del(self,ctx, word: str):
-        """Repeats something"""
+        """deletes a response by using the keyword as an arguement"""
         if await LootBot.check_permissions(ctx.message.author, "Loot Council") is True:
             await self.bot.type()
             self.delete(word)

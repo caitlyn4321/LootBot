@@ -5,6 +5,7 @@ import LootBot
 import asyncio
 import discord
 import static
+import traceback
 from discord.ext import commands
 
 class EQServerStatus:
@@ -70,6 +71,7 @@ class EQServerStatus:
         except Exception as e:
             exc = '{}: {}'.format(type(e).__name__, e)
             print('Error in timed status:\n{}'.format( exc))
+            traceback.print_exc()
             self.bot.loop.create_task(self.timed_status(discord.Object(id=self.broadcastroom)))
 
     @commands.command(pass_context=True)
