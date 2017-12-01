@@ -7,6 +7,7 @@ import discord
 import sys
 import random
 import LootBot
+import traceback
 from discord.ext import commands
 from datetime import datetime
 
@@ -251,9 +252,9 @@ class LootParse:
                                    "Suggested winner, picked at random: {}".format(random.choice(character)))
         return lookup_list
 
-    @bot.command(hidden=True, pass_context=True,
+    @commands.command(name="test", hidden=True, pass_context=True,
                  description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")
-    async def test(self, ctx):
+    async def test_parse(self, ctx):
         """Runs a test by loading every persons items and reporting failures"""
         await self.bot.type()
         if await LootBot.check_permissions(ctx.message.author, "Loot Council") is True:
@@ -262,6 +263,7 @@ class LootParse:
             try:
                 self.test()
             except:
+                traceback.print_exc()
                 errors += 1
             await self.bot.say("Test complete.  There were {} exceptions seen.".format(errors))
         else:
