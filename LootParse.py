@@ -128,7 +128,7 @@ class LootParse:
                     cache['attendance'][2][0], cache['attendance'][2][1])
         output += "\n\t__Items__: {}\n".format(len(cache['items']))
         for item in cache['items']:
-            output += "\t\t{}\t{}\t{}\n".format(item['name'], item['raid'], item['date'].strftime("%d %B %y"))
+            output += "\t\t{}\t{}\t{}\n".format(item['name'].replace("`","'"), item['raid'], item['date'].strftime("%d %B %y"))
 
         return output
 

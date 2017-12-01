@@ -10,7 +10,7 @@ import asyncio
 import sys
 import traceback
 import static
-import testreplace
+import random
 from discord.ext import commands
 
 # TODO : Update the bot to be a class for easier unit testing.
@@ -20,9 +20,11 @@ from discord.ext import commands
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=static.description, pm_help=True)
 loot = LootParse.LootParse()
 varQuote = quotes.QuotesClass()
-varResponse = testreplace.WordResponse()
 varEQStatus = eqserverstatus.EQServerStatus()
+broadcastroom=static.bottest
+isttson=False
 
+startup_extensions = ["fun","testreplace"]
 
 def dict_to_embed(starting):
     """Takes an embed dict and returns an embed object"""
@@ -65,7 +67,6 @@ async def is_bot(user):
     if hasattr(user,"roles"):
         for role in user.roles:
             if "BOTS" == role.name.upper():
-                print("bot found")
                 return True
     return False
 
@@ -76,18 +77,8 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    bot.loop.create_task(timed_status(discord.Object(id=static.bottest)))
+    #bot.loop.create_task(timed_status(discord.Object(id=broadcastroom)))
 
-
-@bot.event
-async def on_message(message):
-    """ Process messages"""
-    await bot.process_commands(message)
-    if message.author != bot.user:
-        if await is_bot(message.author) is False:
-            response=varResponse.check(message.content)
-            if response is not None:
-                await bot.send_message(message.channel, response)
 
 @bot.command(pass_context=True)
 async def status(ctx):
@@ -100,25 +91,6 @@ async def status(ctx):
         await bot.say("There is an issue retrieving the current Agnarr status, "
                       "or status calls may be too close together")
 
-@bot.command(pass_context=True)
-async def response_add(ctx, word: str, *words: str):
-    """Repeats something"""
-    if await check_permissions(ctx.message.author,"Loot Council") is True:
-        await bot.type()
-        varResponse.add(word,words)
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-    else:
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
-
-@bot.command(pass_context=True)
-async def response_del(ctx, word: str):
-    """Repeats something"""
-    if await check_permissions(ctx.message.author, "Loot Council") is True:
-        await bot.type()
-        varResponse.delete(word)
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-    else:
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
 
 @bot.command(hidden=True, pass_context=True,
              description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")
@@ -248,6 +220,8 @@ async def do_lookup(ctx, character, do_show, embedtitle=""):
             charindex += 1
 
     await bot.delete_message(ctx.message)
+    if len(newchars)>1:
+        await bot.send_message(ctx.message.channel, "Suggested winner, picked at random: {}".format(random.choice(character)))
     return lookup_list
 
 
@@ -484,15 +458,25 @@ async def wait_for_poll(ctx, ids, minutes):
 
 async def timed_status(channel):
     """This is the async background task created to close the poll out after a specific time."""
-    await bot.wait_until_ready()
-    while not bot.is_closed:
-        await asyncio.sleep(60)
-        result = varEQStatus.check()
-        if result is True:
-            await bot.send_message(channel,"Agnarr's current population/status is {} as of {}"
-                          .format(varEQStatus.state, varEQStatus.time.strftime("%H:%M")))
-        await bot.change_presence(game=discord.Game(name='Agnarr: {} @ {}'.format(varEQStatus.state, varEQStatus.time.strftime("%H:%M"))))
-    return
+    try:
+        counter=0
+        await bot.wait_until_ready()
+        while not bot.is_closed:
+            await asyncio.sleep(60)
+            result = varEQStatus.check()
+            if result is False:
+                counter+=1
+                if counter == 5:
+                    await bot.send_message(channel,"Agnarr's current population/status is {} as of {}"
+                              .format(varEQStatus.state, varEQStatus.time.strftime("%H:%M")))
+            elif result is True:
+                counter = 0
+            await bot.change_presence(game=discord.Game(name='Agnarr: {} @ {}'.format(varEQStatus.state, varEQStatus.time.strftime("%H:%M"))))
+        print("Bot has closed, zomg")
+        return
+    except:
+        traceback.print_exc(sys.exc_info())
+        bot.loop.create_task(timed_status(discord.Object(id=broadcastroom)))
 
 @bot.command(pass_context=True, hidden=True)
 async def say(ctx, *message: str):
@@ -503,4 +487,13 @@ async def say(ctx, *message: str):
         await bot.delete_message(ctx.message)
 
 
-bot.run(secrets.BotToken)
+
+if __name__ == "__main__":
+    for extension in startup_extensions:
+        try:
+            bot.load_extension("modules.{}".format(extension))
+        except Exception as e:
+            exc = '{}: {}'.format(type(e).__name__, e)
+            print('Failed to load extension {}\n{}'.format(extension, exc))
+    random.seed()
+    bot.run(secrets.BotToken)
