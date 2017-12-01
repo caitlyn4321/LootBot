@@ -52,7 +52,6 @@ class WordResponse:
 
     async def on_message(self,message):
         """ Process messages"""
-        await self.bot.process_commands(message)
         if message.author != self.bot.user:
             if await LootBot.is_bot(message.author) is False:
                 response = self.check(message.content)

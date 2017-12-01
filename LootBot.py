@@ -2,9 +2,7 @@ import secrets
 import discord
 import LootParse
 import html
-import eqserverstatus
 import requests
-import quotes
 import datetime
 import asyncio
 import sys
@@ -19,12 +17,9 @@ from discord.ext import commands
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=static.description, pm_help=True)
 loot = LootParse.LootParse()
-varQuote = quotes.QuotesClass()
-varEQStatus = eqserverstatus.EQServerStatus()
-broadcastroom=static.bottest
 isttson=False
 
-startup_extensions = ["fun","testreplace"]
+startup_extensions = ["fun","testreplace","quotes","eqserverstatus"]
 
 def dict_to_embed(starting):
     """Takes an embed dict and returns an embed object"""
@@ -36,20 +31,6 @@ def dict_to_embed(starting):
         embed.set_footer(text="")
     return embed
 
-
-def quote_to_embed(result):
-    """ Takes a list containing quote values and turns it into an embed that can be posted to discord."""
-    thedate = datetime.date.fromtimestamp(result[3])
-    thechannel = bot.get_channel(result[2])
-    themember = thechannel.server.get_member(result[1])
-    theauthor = themember.name
-    if hasattr(themember, "nick"):
-        if themember.nick is not None:
-            theauthor = themember.nick
-    embed = discord.Embed(title="Quote #{}".format(result[4]), description=result[0])
-    embed.set_author(name=theauthor, icon_url=themember.avatar_url)
-    embed.set_footer(text="Saved on: {}".format(thedate.strftime("%d %B %y")))
-    return embed
 
 async def check_permissions(user,name):
     if hasattr(user, "roles"):
@@ -78,18 +59,6 @@ async def on_ready():
     print(bot.user.id)
     print('------')
     #bot.loop.create_task(timed_status(discord.Object(id=broadcastroom)))
-
-
-@bot.command(pass_context=True)
-async def status(ctx):
-    await bot.type()
-    result = varEQStatus.check()
-    if (result is True) or (result is False):
-        await bot.say("Agnarr's current population/status is {} as of {}"
-                      .format(varEQStatus.state,varEQStatus.time.strftime("%H:%M")))
-    else:
-        await bot.say("There is an issue retrieving the current Agnarr status, "
-                      "or status calls may be too close together")
 
 
 @bot.command(hidden=True, pass_context=True,
@@ -299,16 +268,6 @@ async def list(ctx, question, *options: str):
     await bot.delete_message(ctx.message)
 
 
-@bot.command(description="Lookup an item", aliases=["Item"])
-async def item(*itemname: str):
-    """Attemps very poorly to load an item from the web"""
-    await bot.type()
-
-    await bot.say(
-        "Just google it,  this command is stupid: http://lmgtfy.com/?q={}".format(html.escape('+'.join(itemname))))
-    return
-
-
 @bot.command(pass_context=True, description="Insults people")
 async def insult(ctx):
     """Bot command that uses an amazing insult API to say an insult"""
@@ -328,57 +287,6 @@ async def update_status(ctx, *messages: str):
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
     else:
         await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
-
-
-@bot.command(pass_context=True, description="Add a quote")
-async def quote_add(ctx, *message: str):
-    """Adds a new quote to the database"""
-    await bot.type()
-    num = varQuote.add([' '.join(message), ctx.message.author.id, ctx.message.channel.id])
-    await bot.say("Quote #{} has been added.".format(num))
-
-
-@bot.command(pass_context=True, description="Delete a quote")
-async def quote_del(ctx, num: int):
-    """Deletes a specific quote from a database"""
-    await bot.type()
-    if await check_permissions(ctx.message.author, "Loot Council") is True:
-        varQuote.delete(num)
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-    else:
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
-
-
-@bot.command(pass_context=True, description="get a quote")
-async def quote_get(ctx, num: int):
-    """Gets a specific quote from the database"""
-    await bot.type()
-    result = varQuote.get_quote(num)
-    if result == -1:
-        await bot.say("Quote #{} is not found..".format(num))
-    else:
-        await bot.say(embed=quote_to_embed(result))
-        await bot.delete_message(ctx.message)
-
-
-@bot.command(pass_context=True, description="get a quote")
-async def quote(ctx):
-    """Gets a random quote from the database"""
-    await bot.type()
-    result = varQuote.get_random()
-    if result == -1:
-        await bot.say("There was an issue retrieving a quote")
-    else:
-        await bot.say(embed=quote_to_embed(result))
-        await bot.delete_message(ctx.message)
-
-
-@bot.command(description="Show the number of quotes in the database")
-async def quote_count():
-    """Count the quotes in the database"""
-    await bot.type()
-    result = varQuote.count()
-    await bot.say(result)
 
 
 @bot.command(pass_context=True, description="Lookup by class", aliases=["csearch", "class_lookup"])
@@ -456,27 +364,6 @@ async def wait_for_poll(ctx, ids, minutes):
             await bot.clear_reactions(poll_message)
     return
 
-async def timed_status(channel):
-    """This is the async background task created to close the poll out after a specific time."""
-    try:
-        counter=0
-        await bot.wait_until_ready()
-        while not bot.is_closed:
-            await asyncio.sleep(60)
-            result = varEQStatus.check()
-            if result is False:
-                counter+=1
-                if counter == 5:
-                    await bot.send_message(channel,"Agnarr's current population/status is {} as of {}"
-                              .format(varEQStatus.state, varEQStatus.time.strftime("%H:%M")))
-            elif result is True:
-                counter = 0
-            await bot.change_presence(game=discord.Game(name='Agnarr: {} @ {}'.format(varEQStatus.state, varEQStatus.time.strftime("%H:%M"))))
-        print("Bot has closed, zomg")
-        return
-    except:
-        traceback.print_exc(sys.exc_info())
-        bot.loop.create_task(timed_status(discord.Object(id=broadcastroom)))
 
 @bot.command(pass_context=True, hidden=True)
 async def say(ctx, *message: str):
@@ -486,7 +373,29 @@ async def say(ctx, *message: str):
         await bot.say(' '.join(message))
         await bot.delete_message(ctx.message)
 
+@bot.command(pass_context=True, hidden=True)
+async def load(ctx, extension_name : str):
+    """Loads an extension."""
+    if await check_permissions(ctx.message.author, "Loot Council") is True:
+        try:
+            bot.load_extension("modules.{}".format(extension_name))
+        except (AttributeError, ImportError) as e:
+            await bot.say("```py\n{}: {}\n```".format(type(e).__name__, str(e)))
+            return
+        await bot.say("{} loaded.".format(extension_name))
+    else:
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
 
+
+
+@bot.command(pass_context=True, hidden=True)
+async def unload(ctx, extension_name : str):
+    """Unloads an extension."""
+    if await check_permissions(ctx.message.author, "Loot Council") is True:
+        bot.unload_extension("modules.{}".format(extension_name))
+        await bot.say("{} unloaded.".format(extension_name))
+    else:
+        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
 
 if __name__ == "__main__":
     for extension in startup_extensions:
