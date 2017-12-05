@@ -60,24 +60,20 @@ class WordResponse:
                     await self.bot.send_message(message.channel, response, tts=LootBot.isttson)
 
     @commands.command(pass_context=True)
+    @commands.has_any_role("Admin", "Officer", "Loot Council")
     async def response_add(self,ctx, word: str, *words: str):
         """Add a new response"""
-        if await LootBot.check_permissions(ctx.message.author, "Loot Council") is True:
-            await self.bot.type()
-            self.add(word, words)
-            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-        else:
-            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
+        await self.bot.type()
+        self.add(word, words)
+        await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
 
     @commands.command(pass_context=True)
+    @commands.has_any_role("Admin", "Officer", "Loot Council")
     async def response_del(self,ctx, word: str):
         """deletes a response by using the keyword as an arguement"""
-        if await LootBot.check_permissions(ctx.message.author, "Loot Council") is True:
-            await self.bot.type()
-            self.delete(word)
-            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-        else:
-            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
+        await self.bot.type()
+        self.delete(word)
+        await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
 
 
 def setup(bot):

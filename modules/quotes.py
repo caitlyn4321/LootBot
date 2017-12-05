@@ -96,14 +96,12 @@ class QuotesClass:
         await self.bot.say("Quote #{} has been added.".format(num))
 
     @commands.command(pass_context=True, description="Delete a quote")
+    @commands.has_any_role("Admin", "Officer", "Loot Council")
     async def quote_del(self, ctx, num: int):
         """Deletes a specific quote from a database"""
         await self.bot.type()
-        if await LootBot.check_permissions(ctx.message.author, "Loot Council") is True:
-            self.delete(num)
-            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-        else:
-            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
+        self.delete(num)
+        await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
 
     @commands.command(pass_context=True, description="get a quote")
     async def quote_get(self, ctx, num: int):

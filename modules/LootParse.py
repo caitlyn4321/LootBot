@@ -207,9 +207,10 @@ class LootParse:
                 embedtitle = char
             else:
                 try:
-                    newoutput = "{} {}\n".format(static.emotes['counts'][hits], self.display(char)[:1990])
+                    trunclimit=1990
+                    newoutput = "{} {}\n".format(static.emotes['counts'][hits], self.display(char)[:trunclimit])
                     hits += 1
-                    if len(newoutput) > 1990:
+                    if len(newoutput) > trunclimit:
                         newoutput+="..."
                 except:
                     print(sys.exc_info()[0])
@@ -255,22 +256,18 @@ class LootParse:
 
     @commands.command(name="test", hidden=True, pass_context=True,
                  description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")
+    @commands.has_any_role("Admin", "Officer", "Loot Council")
     async def test_parse(self, ctx):
         """Runs a test by loading every persons items and reporting failures"""
         await self.bot.type()
-        if await LootBot.check_permissions(ctx.message.author, "Loot Council") is True:
-            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-            errors = 0
-            try:
-                await self.test()
-            except:
-                traceback.print_exc()
-                errors += 1
-            await self.bot.say("Test complete.  There were {} exceptions seen.".format(errors))
-        else:
-            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
-            await self.bot.say("This command has only runs for my owner.  There are not a lot of good reasons to run it.")
-
+        await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
+        errors = 0
+        try:
+            await self.test()
+        except:
+            traceback.print_exc()
+            errors += 1
+        await self.bot.say("Test complete.  There were {} exceptions seen.".format(errors))
 
 
 def setup(bot):
