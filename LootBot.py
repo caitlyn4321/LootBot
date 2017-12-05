@@ -4,6 +4,8 @@ import requests
 import static
 import random
 import traceback
+import logging
+import datetime
 from discord.ext import commands
 
 # TODO : Update the bot to be a class for easier unit testing.
@@ -13,7 +15,18 @@ from discord.ext import commands
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=static.description, pm_help=True)
 isttson=False
 
-startup_extensions = ["fun","testreplace","quotes","eqserverstatus","LootParse", "polls"]
+# Setup the logging
+bot.logger = logging.getLogger('discord')
+bot.logger.setLevel(logging.INFO)
+
+# Setup the log file handler
+handler = logging.FileHandler(
+    filename=f'Logs\LootBot-{datetime.datetime.now().strftime("%y%m%d%H%M%S")}.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter(
+    '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+bot.logger.addHandler(handler)
+
+startup_extensions = ["fun","testreplace","quotes","eqserverstatus","LootParse", "polls","moderation"]
 
 async def check_permissions(user,name):
     if hasattr(user, "roles"):
@@ -43,23 +56,6 @@ async def on_ready():
     print('------')
 
 
-
-
-
-
-@bot.command(hidden=True, pass_context=True,
-             description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")
-async def pr(ctx):
-    """Prints a message to the console.  Useful for finding out what unicode emotes translate to"""
-    await bot.type()
-    if str(ctx.message.author.id) == static.myowner:
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-        print(ctx.message.content)
-    else:
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
-        await bot.say("This command has only runs for my owner.  There are not a lot of good reasons to run it.")
-
-
 @bot.command(pass_context=True, description="Ping the bot owner")
 async def owner(ctx):
     """Page the bot owner"""
@@ -69,25 +65,6 @@ async def owner(ctx):
         await bot.say("You, {} are my owner.".format(mymention.mention))
     else:
         await bot.say(mymention.mention + " is my owner.")
-
-@bot.command(pass_context=True, hidden=True, description="Updates my status message")
-async def update_status(ctx, *messages: str):
-    """Updats the status that the bot displays"""
-    await bot.type()
-    if await check_permissions(ctx.message.author, "Loot Council") is True:
-        await bot.change_presence(game=discord.Game(name=' '.join(messages)))
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
-    else:
-        await bot.add_reaction(ctx.message, static.emotes['checkbox'][1])
-
-
-@bot.command(pass_context=True, hidden=True)
-async def say(ctx, *message: str):
-    """Repeats something"""
-    await bot.type()
-    if await check_permissions(ctx.message.author, "Loot Council") is True:
-        await bot.say(' '.join(message))
-        await bot.delete_message(ctx.message)
 
 @bot.command(pass_context=True, hidden=True)
 async def load(ctx, extension_name : str):

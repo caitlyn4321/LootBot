@@ -8,6 +8,7 @@ import sys
 import random
 import LootBot
 import traceback
+import asyncio
 from discord.ext import commands
 from datetime import datetime
 
@@ -104,9 +105,10 @@ class LootParse:
             counter += 1
         self.characters[character.upper()]['items_loaded'] = 1
 
-    def test(self):
+    async def test(self):
         """Performs the item loading test against the characters table"""
         for character in self.characters.keys():
+            asyncio.sleep(0.1)
             print(self.get_char(character))
 
     def display(self, character):
@@ -205,8 +207,10 @@ class LootParse:
                 embedtitle = char
             else:
                 try:
-                    newoutput = "{} {}\n".format(static.emotes['counts'][hits], self.display(char))
+                    newoutput = "{} {}\n".format(static.emotes['counts'][hits], self.display(char)[:1990])
                     hits += 1
+                    if len(newoutput) > 1990:
+                        newoutput+="..."
                 except:
                     print(sys.exc_info()[0])
                     # traceback.print_exc(sys.exc_info())
@@ -247,9 +251,6 @@ class LootParse:
                 charindex += 1
 
         await self.bot.delete_message(ctx.message)
-        if len(newchars) > 1:
-            await self.bot.send_message(ctx.message.channel,
-                                   "Suggested winner, picked at random: {}".format(random.choice(character)))
         return lookup_list
 
     @commands.command(name="test", hidden=True, pass_context=True,
@@ -261,7 +262,7 @@ class LootParse:
             await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
             errors = 0
             try:
-                self.test()
+                await self.test()
             except:
                 traceback.print_exc()
                 errors += 1

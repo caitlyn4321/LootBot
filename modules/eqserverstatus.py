@@ -27,7 +27,7 @@ class EQServerStatus:
     def _update(self):
         try:
             changed = False
-            req_api = requests.get(self.url.format(self._servername)).json()
+            req_api = requests.get(self.url.format(self._servername),timeout=5).json()
 
             if int(req_api['returned'])>0:
                 if req_api['game_server_status_list'][0]['last_reported_state'] != self.state:
@@ -40,7 +40,13 @@ class EQServerStatus:
             self.lastchecked=datetime.datetime.now()
             self.loaded=1
             return changed
-        except:
+        except requests.exceptions.ReadTimeout as e:
+            print('{}: {}'.format(type(e).__name__, e))
+            self.loaded=0
+            return None
+        except Exception as e:
+            print('{}: {}'.format(type(e).__name__, e))
+            traceback.print_exc()
             self.loaded=0
             return None
 

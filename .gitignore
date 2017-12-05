@@ -104,6 +104,7 @@ venv.bak/
 .mypy_cache/
 
 # Private authentication information
+Logs/
 secrets.py
 .idea/
 quotes.json
