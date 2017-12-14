@@ -4,6 +4,7 @@ import traceback
 import datastore
 import datetime
 import asyncio
+import concurrent.futures
 from discord.ext import commands
 
 class Moderation:
@@ -16,7 +17,10 @@ class Moderation:
             self.filename = filename
         self.motd_list = datastore.DataStore(self.filename)
         self.bot=bot
-        self.bot.loop.create_task(self.timed_motd())
+        if hasattr(self.bot, "motdtask"):
+            self.bot.motdtask.cancel()
+        self.bot.motdtask = bot.loop.create_task(self.timed_motd())
+        print("MOTD Task started.")
 
     @commands.command(pass_context=True)
     @commands.has_any_role("Admin","Officer","Loot Council")
@@ -58,7 +62,6 @@ class Moderation:
     async def motd_set(self, ctx, *message: str):
         """Sets the MOTD or unsets it if left blank."""
         await self.bot.type()
-        print(self.motd_list)
         if len(message) > 0:
             self.motd_list[ctx.message.channel.id] = [datetime.datetime.now().timestamp(),
                                               (datetime.datetime.now() +
@@ -124,7 +127,10 @@ class Moderation:
                     if datetime.datetime.now() > datetime.datetime.fromtimestamp(int(self.motd_list[channelkey][1])):
                         if self.motd_list[channelkey][4] is not None:
                             msg = await self.bot.get_message(channel, self.motd_list[channelkey][4])
-                            await self.bot.delete_message(msg)
+                            try:
+                                await self.bot.delete_message(msg)
+                            except:
+                                print("Message ID not found: ()".format(self.motd_list[channelkey][4]))
                             self.motd_list[channelkey][4] = None
                         self.motd_list[channelkey][1]=(datetime.datetime.now() +
                                                datetime.timedelta(minutes=self.motd_minutes)).timestamp()
@@ -137,12 +143,20 @@ class Moderation:
                         self.motd_list.save()
             print("Bot has closed, zomg")
             return
+        except concurrent.futures.CancelledError:
+            print ("MOTD Task Cancelled")
         except Exception as e:
             exc = '{}: {}'.format(type(e).__name__, e)
             print('Error in timed MOTD:\n{}'.format( exc))
             traceback.print_exc()
             self.bot.loop.create_task(self.timed_motd())
 
-
 def setup(bot):
     bot.add_cog(Moderation(bot=bot))
+
+
+def teardown(bot):
+    if hasattr(bot,"motdtask"):
+        bot.motdtask.cancel()
+        asyncio.wait_for(bot.motdtask,10)
+        del bot.motdtask
