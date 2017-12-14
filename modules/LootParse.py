@@ -26,8 +26,8 @@ class LootParse:
         """Performs the actual reload of the character data"""
         try:
 
-            req_api = requests.get('https://theancientcoalition.com/api.php?function=points&format=json').json()
-            req_web = requests.get('https://theancientcoalition.com/index.php/Points/?show_twinks=1')
+            req_api = requests.get('https://theancientcoalition.com/api.php?function=points&format=json',timeout=10).json()
+            req_web = requests.get('https://theancientcoalition.com/index.php/Points/?show_twinks=1',timeout=10)
 
             self.characters = {}
 
@@ -64,7 +64,12 @@ class LootParse:
                     counter += 4
                 counter += 1
             self.fully_loaded = 1
-        except:
+        except requests.exceptions.ReadTimeout as e:
+            print('{}: {}'.format(type(e).__name__, e))
+            self.loaded = 0
+        except Exception as e:
+            print('{}: {}'.format(type(e).__name__, e))
+            traceback.print_exc()
             self.fully_loaded = 0
 
     def is_loaded(self):
@@ -80,7 +85,7 @@ class LootParse:
         """Loads to loot table into the character table for a specific character"""
         if self.characters[character.upper()]['items_loaded'] == 1:
             return
-        req_web = requests.get('https://theancientcoalition.com/index.php/Items/?search_type=buyer&search=' + character)
+        req_web = requests.get('https://theancientcoalition.com/index.php/Items/?search_type=buyer&search=' + character,timeout=10)
         counter = 0
         web_lines = req_web.text.splitlines()
 

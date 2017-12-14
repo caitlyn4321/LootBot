@@ -47,7 +47,7 @@ class Fun:
     async def ask(self, ctx, *, s: str):
         """ Asks wolfram alpha"""
         s.replace(' ', '+')
-        req = requests.get("http://api.wolframalpha.com/v1/result?appid=RPYQ54-Q3W9QJKWR9&i=" + s)
+        req = requests.get("http://api.wolframalpha.com/v1/result?appid=RPYQ54-Q3W9QJKWR9&i=" + s,timeout=5)
         author = ctx.message.author
         em = discord.Embed(description=req.text, author=author)
         await self.bot.say(embed=em)
@@ -80,7 +80,7 @@ class Fun:
     async def insult(self, ctx):
         """Use an amazing insult API to say an insult"""
         await self.bot.type()
-        reqWEB = requests.get('https://insult.mattbas.org/api/en/insult.json').json()
+        reqWEB = requests.get('https://insult.mattbas.org/api/en/insult.json',timeout=5).json()
 
         await self.bot.say(reqWEB['insult'])
         await self.bot.delete_message(ctx.message)
