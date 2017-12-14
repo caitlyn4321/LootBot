@@ -40,13 +40,11 @@ class EQServerStatus:
             self.lastchecked=datetime.datetime.now()
             self.loaded=1
             return changed
-        except requests.exceptions.ReadTimeout as e:
-            print('{}: {}'.format(type(e).__name__, e))
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
             self.loaded=0
             return None
         except Exception as e:
             print('{}: {}'.format(type(e).__name__, e))
-            traceback.print_exc()
             self.loaded=0
             return None
 
