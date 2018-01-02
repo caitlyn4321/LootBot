@@ -7,6 +7,8 @@ import asyncio
 import concurrent.futures
 from discord.ext import commands
 
+# TODO: Change motdtask to a dictionary with task name as keys.
+
 class Moderation:
     filename = "data_motd.json"
     motd_minutes = 120
@@ -17,9 +19,9 @@ class Moderation:
             self.filename = filename
         self.motd_list = datastore.DataStore(self.filename)
         self.bot=bot
-        if hasattr(self.bot, "motdtask"):
-            self.bot.motdtask.cancel()
-        self.bot.motdtask = bot.loop.create_task(self.timed_motd())
+        if "motdtask" in self.bot.tasks.keys():
+            self.bot.tasks['motdtask'].cancel()
+        self.bot.tasks['motdtask'] = self.bot.loop.create_task(self.timed_motd())
         print("MOTD Task started.")
 
     @commands.command(pass_context=True)
@@ -69,7 +71,14 @@ class Moderation:
                                               ctx.message.author.id,
                                               ' '.join(message),
                                                       None]
-            await self.bot.add_reaction(ctx.message, static.emotes['checkbox'][0])
+            response = self.motd_text([ctx.message.channel.id] + self.motd_list[ctx.message.channel.id])
+            newmsg = await self.bot.say(response)
+            self.motd_list[ctx.message.channel.id][4] = newmsg.id
+            self.motd_list.save()
+            try:
+                await self.bot.delete_message(ctx.message)
+            except:
+                pass
         else:
             if ctx.message.channel.id in self.motd_list.keys():
                 del self.motd_list[ctx.message.channel.id]
@@ -77,7 +86,6 @@ class Moderation:
             else:
                 await self.bot.say("No MOTD set for this channel.")
         self.motd_list.save()
-        print(self.motd_list)
 
     def motd_embed(self,motd_list):
         """ Takes a list containing motd values and turns it into an embed that can be posted to discord."""
@@ -112,6 +120,10 @@ class Moderation:
             #await self.bot.say(embed=embed)
             response = self.motd_text([ctx.message.channel.id]+self.motd_list[ctx.message.channel.id])
             newmsg = await self.bot.say(response)
+            self.motd_list[ctx.message.channel.id][4] = newmsg.id
+            self.motd_list[ctx.message.channel.id][1] = (datetime.datetime.now() +
+                                             datetime.timedelta(minutes=self.motd_minutes)).timestamp()
+            self.motd_list.save()
             await self.bot.delete_message(ctx.message)
         else:
             await self.bot.say("There is no MOTD set")
@@ -124,22 +136,28 @@ class Moderation:
                 await asyncio.sleep(10)
                 for channelkey in self.motd_list:
                     channel = self.bot.get_channel(channelkey)
+
                     if datetime.datetime.now() > datetime.datetime.fromtimestamp(int(self.motd_list[channelkey][1])):
-                        if self.motd_list[channelkey][4] is not None:
-                            msg = await self.bot.get_message(channel, self.motd_list[channelkey][4])
-                            try:
-                                await self.bot.delete_message(msg)
-                            except:
-                                print("Message ID not found: ()".format(self.motd_list[channelkey][4]))
-                            self.motd_list[channelkey][4] = None
-                        self.motd_list[channelkey][1]=(datetime.datetime.now() +
-                                               datetime.timedelta(minutes=self.motd_minutes)).timestamp()
-                        #embed = self.motd_embed([channelkey] + self.motd_list[channelkey])
-                        #newmsg = await self.bot.send_message(channel,embed=embed)
-                        response=self.motd_text([channelkey] + self.motd_list[channelkey])
-                        newmsg = await self.bot.send_message(channel, response)
-                        self.motd_list[channelkey][4] = newmsg.id
-                        #await self.bot.pin_message(newmsg)
+                        async for message in self.bot.logs_from(channel, 1):
+                            if hasattr(message,"id"):
+                                message_id=message.id
+                            else:
+                                message_id=0
+                            if int(message_id) != int(self.motd_list[channelkey][4]):
+                                if self.motd_list[channelkey][4] is not None:
+                                    try:
+                                        msg = await self.bot.get_message(channel, self.motd_list[channelkey][4])
+                                        await self.bot.delete_message(msg)
+                                    except:
+                                        print("Message ID not found: ()".format(self.motd_list[channelkey][4]))
+                                    self.motd_list[channelkey][4] = None
+                                self.motd_list[channelkey][1]=(datetime.datetime.now() +
+                                                       datetime.timedelta(minutes=self.motd_minutes)).timestamp()
+                                response=self.motd_text([channelkey] + self.motd_list[channelkey])
+                                newmsg = await self.bot.send_message(channel, response)
+                                self.motd_list[channelkey][4] = newmsg.id
+                        self.motd_list[channelkey][1] = (datetime.datetime.now() + datetime.timedelta(
+                                                                     minutes=self.motd_minutes)).timestamp()
                         self.motd_list.save()
             print("Bot has closed, zomg")
             return
@@ -156,7 +174,8 @@ def setup(bot):
 
 
 def teardown(bot):
-    if hasattr(bot,"motdtask"):
-        bot.motdtask.cancel()
-        asyncio.wait_for(bot.motdtask,10)
-        del bot.motdtask
+    if "motdtask" in bot.tasks.keys():
+        bot.tasks['motdtask'].cancel()
+        asyncio.wait_for(bot.tasks['motdtask'],10)
+        del bot.tasks['motdtask']
+        print("MOTD Task Cancelling")

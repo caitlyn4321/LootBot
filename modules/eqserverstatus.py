@@ -6,6 +6,7 @@ import asyncio
 import discord
 import static
 import traceback
+import concurrent.futures
 from discord.ext import commands
 
 class EQServerStatus:
@@ -23,6 +24,10 @@ class EQServerStatus:
         self.minseconds = 10
         self.bot=bot
         self.broadcastroom = static.bottest
+        if "EQServerStatus" in self.bot.tasks.keys():
+            self.bot.tasks['EQServerStatus'].cancel()
+        self.bot.tasks['EQServerStatus'] = self.bot.loop.create_task(self.timed_status(discord.Object(id=self.broadcastroom)))
+        print("EQServerStatus Task started.")
 
     def _update(self):
         try:
@@ -72,6 +77,8 @@ class EQServerStatus:
                     name='Agnarr: {} @ {}'.format(self.state, self.time.strftime("%H:%M"))))
             print("Bot has closed, zomg")
             return
+        except concurrent.futures.CancelledError:
+            print ("EQServerStatus Task Cancelled")
         except Exception as e:
             exc = '{}: {}'.format(type(e).__name__, e)
             print('Error in timed status:\n{}'.format( exc))
@@ -89,10 +96,12 @@ class EQServerStatus:
             await self.bot.say("There is an issue retrieving the current Agnarr status, "
                           "or status calls may be too close together")
 
-    async def on_ready(self):
-        """ An event handler to print out information once startup is complete"""
-        self.bot.loop.create_task(self.timed_status(discord.Object(id=self.broadcastroom)))
-
-
 def setup(bot):
     bot.add_cog(EQServerStatus(bot=bot))
+
+def teardown(bot):
+    if "EQServerStatus" in bot.tasks.keys():
+        bot.tasks['EQServerStatus'].cancel()
+        asyncio.wait_for(bot.tasks['EQServerStatus'],10)
+        del bot.tasks['EQServerStatus']
+        print("EQServerStatus Task Cancelling")

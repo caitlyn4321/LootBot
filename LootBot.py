@@ -80,6 +80,7 @@ async def rl(ctx, extension_name : str):
     await bot.say("{} reloaded.".format(extension_name))
 
 if __name__ == "__main__":
+    bot.tasks={}
     for extension in startup_extensions:
         try:
             bot.load_extension("modules.{}".format(extension))

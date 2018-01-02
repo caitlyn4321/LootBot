@@ -9,25 +9,35 @@ import random
 import LootBot
 import traceback
 import asyncio
+import datastore
 from discord.ext import commands
 from datetime import datetime
 
+# TODO: Ignore KeyError in display, or rewrite the checks to not throw it
 
 class LootParse:
     characters = {}
     fully_loaded = 0
+    filename = "data_loothighlights.json"
 
-    def __init__(self, bot):
+    def __init__(self, bot, filename=""):
         """Startup of the loot parser.  Initial values"""
+        if len(filename) > 0:
+            self.filename = filename
         self.bot=bot
+        random.seed()
         self.reload_loot()
 
     def reload_loot(self):
         """Performs the actual reload of the character data"""
+        self.loot_highlights = datastore.DataStore(self.filename)
+        if "items" not in self.loot_highlights:
+            self.loot_highlights['items']={}
+
         try:
 
-            req_api = requests.get('https://theancientcoalition.com/api.php?function=points&format=json',timeout=10).json()
-            req_web = requests.get('https://theancientcoalition.com/index.php/Points/?show_twinks=1',timeout=10)
+            req_api = requests.get('https://pitfallguild.org/api.php?function=points&format=json',timeout=20).json()
+            req_web = requests.get('https://pitfallguild.org/index.php/Points/?show_twinks=1',timeout=20)
 
             self.characters = {}
 
@@ -66,7 +76,7 @@ class LootParse:
             self.fully_loaded = 1
         except requests.exceptions.ReadTimeout as e:
             print('{}: {}'.format(type(e).__name__, e))
-            self.loaded = 0
+            self.fully_loaded = 0
         except Exception as e:
             print('{}: {}'.format(type(e).__name__, e))
             traceback.print_exc()
@@ -85,7 +95,7 @@ class LootParse:
         """Loads to loot table into the character table for a specific character"""
         if self.characters[character.upper()]['items_loaded'] == 1:
             return
-        req_web = requests.get('https://theancientcoalition.com/index.php/Items/?search_type=buyer&search=' + character,timeout=10)
+        req_web = requests.get('https://pitfallguild.org/index.php/Items/?search_type=buyer&search=' + character,timeout=10)
         counter = 0
         web_lines = req_web.text.splitlines()
 
@@ -116,10 +126,9 @@ class LootParse:
             asyncio.sleep(0.1)
             print(self.get_char(character))
 
-    def display(self, character):
+    def display(self, character,summary=False):
         """Returns a formatted output for the character data passed to it."""
         cache = self.get_char(character.upper())
-        print("display: {}".format(character))
         output = "**{}** ({}/{})".format(cache['name'], cache['class'], cache['rank'])
         thirtyatt = int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])
         emote = static.emotes['90']
@@ -140,9 +149,48 @@ class LootParse:
         output += "\tLifetime: **{}% ({}/{})**"\
             .format(math.ceil(100 * int(cache['attendance'][2][0]) / int(cache['attendance'][2][1])),
                     cache['attendance'][2][0], cache['attendance'][2][1])
-        output += "\n\t__Items__: {}\n".format(len(cache['items']))
-        for item in cache['items']:
-            output += "\t\t{}\t{}\t{}\n".format(item['name'].replace("`","'"), item['raid'], item['date'].strftime("%d %B %y"))
+        output += "\n\t__Items__: **{}**\n".format(len(cache['items']))
+        if(summary):
+            try:
+                if len(cache['items']) > 0:
+                    parseditems=[]
+                    for x in range(max(self.loot_highlights['items'].values())+1):
+                        parseditems.append([])
+
+                    for item in cache['items']:
+                        if item['name'] in self.loot_highlights['items'].keys():
+                            parseditems[self.loot_highlights['items'][item['name']]].append([item['name'], item['raid'],
+                                                                                             item['date']])
+                        else:
+                            parseditems[0].append([item['name'], item['raid'], item['date']])
+
+                    parseditems=parseditems[1:]+[parseditems[0]]
+                    for x in range(len(parseditems)):
+                        if x == len(parseditems)-1:
+                            output += "\t\t__Items with no Tier__: \t**{}**\n".format(len(parseditems[x]))
+                        else:
+                            output += "\t\t__Tier {} items__: \t**{}**\n".format(x+1,len(parseditems[x]))
+                        if len(parseditems[x]) > 0:
+                            if x == 0:
+                                for item in parseditems[x]:
+                                    output += "\t\t\t{}\t{}\t{}\n".format(item[0].replace("`", "'"), item[1],
+                                                                       item[2].strftime("%d %B %y"))
+                            else:
+                                output += "\t\t\t{}\t{}\t{}\n".format(parseditems[x][0][0].replace("`", "'"), parseditems[x][0][1],
+                                                                    parseditems[x][0][2].strftime("%d %B %y"))
+                        #output += "\n"
+            except Exception as e:
+                exc = '{}: {}'.format(type(e).__name__, e)
+                print('Error in summary:\n{}'.format(exc))
+                traceback.print_exc()
+
+        else:
+            for item in cache['items']:
+                templine = "\t\t{}\t{}\t{}".format(item['name'].replace("`","'"), item['raid'], item['date'].strftime("%d %B %y"))
+                if item['name'] in self.loot_highlights['items'].keys():
+                    output += "**{}**\n".format(templine)
+                else:
+                    output +="{}\n".format(templine)
 
         return output
 
@@ -170,6 +218,16 @@ class LootParse:
         else:
             await self.do_lookup(ctx, result, False)
 
+    @commands.command(pass_context=True, description="Lookup by class",aliases=["csum"])
+    async def csummary(self, ctx, classtype):
+        """Perform a summary lookup on everyone of a single class type"""
+        await self.bot.type()
+        result = self.classes(classtype)
+        if len(result) == 0:
+            await self.bot.say("That class wasn't found")
+        else:
+            await self.do_lookup(ctx, result, False, summary=True)
+
     @commands.command(description="Clear the memory and start over fresh")
     async def reload(self):
         """Performs a reload of the character table"""
@@ -185,9 +243,21 @@ class LootParse:
         """The Bot command to perform a character lookup"""
         await self.do_lookup(ctx, character, True)
 
-    async def do_lookup(self, ctx, character, do_show, embedtitle=""):
+    @commands.command(pass_context=True,aliases=["sum"])
+    async def summary(self, ctx, *character: str):
+        """The Bot command to perform a character summary lookup"""
+        await self.do_lookup(ctx, character, True, summary=True)
+
+    async def do_lookup(self, ctx, character, do_show, embedtitle="",summary=False):
         """The function that actually does the lookups.  Shared between multiple functions"""
         await self.bot.type()
+        sender=ctx.message.author.name
+        if hasattr(ctx.message.author, "nick"):
+            if ctx.message.author.nick is not None:
+                sender=ctx.message.author.nick
+
+        print("[{}] {} in {} is looking up: {}".format(datetime.now().replace(microsecond=0), sender,
+                                                       ctx.message.channel.name,' '.join(character)))
         if not self.is_loaded():
             await self.bot.say("I am currently not fully loaded.  Please !reload when I am not broken")
             return
@@ -213,12 +283,11 @@ class LootParse:
             else:
                 try:
                     trunclimit=1990
-                    newoutput = "{} {}\n".format(static.emotes['counts'][hits], self.display(char)[:trunclimit])
+                    newoutput = "{} {}\n".format(static.emotes['counts'][hits], self.display(char,summary=summary)[:trunclimit])
                     hits += 1
                     if len(newoutput) > trunclimit:
                         newoutput+="..."
-                except:
-                    print(sys.exc_info()[0])
+                except KeyError:
                     # traceback.print_exc(sys.exc_info())
                     if do_show is True:
                         newoutput = "```I don't know who {} is.  I blame you.```\n".format(char)
@@ -255,8 +324,10 @@ class LootParse:
             else:
                 output = output + newoutput
                 charindex += 1
-
-        await self.bot.delete_message(ctx.message)
+        try:
+            await self.bot.delete_message(ctx.message)
+        except:
+            pass
         return lookup_list
 
     @commands.command(name="test", hidden=True, pass_context=True,
@@ -274,6 +345,27 @@ class LootParse:
             errors += 1
         await self.bot.say("Test complete.  There were {} exceptions seen.".format(errors))
 
+    @commands.command(pass_context=True, description="Adds an item to highlight")
+    @commands.has_any_role("Admin", "Officer", "Loot Council")
+    async def highlight_add(self, ctx,tier : int,  *msg):
+        highlight = ' '.join(msg)
+        if highlight not in self.loot_highlights['items'].keys():
+            self.loot_highlights['items'][highlight]=tier
+            await self.bot.say("\"{}\" added as tier {}".format(highlight,tier))
+            self.loot_highlights.save()
+        else:
+            await self.bot.say("\"{}\" is already on the list at tier {}".format(highlight,self.loot_highlights['items'][highlight]))
+
+    @commands.command(pass_context=True, description="Deletes an item highlight")
+    @commands.has_any_role("Admin", "Officer", "Loot Council")
+    async def highlight_del(self, ctx, *msg):
+        highlight = ' '.join(msg)
+        if highlight not in self.loot_highlights['items'].keys():
+            await self.bot.say("\"{}\" is not on the list".format(highlight))
+        else:
+            del self.loot_highlights['items'][highlight]
+            self.loot_highlights.save()
+            await self.bot.say("\"{}\" has been removed".format(highlight))
 
 def setup(bot):
     bot.add_cog(LootParse(bot=bot))
