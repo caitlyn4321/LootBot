@@ -4,6 +4,7 @@ import random
 import traceback
 import logging
 import datetime
+import requests
 from discord.ext import commands
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=static.description, pm_help=True)
@@ -21,6 +22,25 @@ handler.setFormatter(logging.Formatter(
 bot.logger.addHandler(handler)
 
 startup_extensions = ["fun","testreplace","quotes","eqserverstatus","LootParse", "polls","moderation"]
+
+
+def fetch(url, timeout=10, retries=3):
+    counter = retries
+    complete = False
+    while counter > 0:
+        try:
+            result = requests.get(url, timeout=timeout)
+            complete = True
+            break
+        except requests.exceptions.Timeout as e:
+            counter -= 1
+            print('{}: {}'.format(type(e).__name__, e))
+            lasterror=e
+
+    if complete:
+        return result
+    else:
+        assert(lasterror)
 
 async def is_bot(user):
     if hasattr(user,"roles"):

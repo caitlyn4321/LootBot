@@ -138,24 +138,26 @@ class Moderation:
                     channel = self.bot.get_channel(channelkey)
 
                     if datetime.datetime.now() > datetime.datetime.fromtimestamp(int(self.motd_list[channelkey][1])):
-                        async for message in self.bot.logs_from(channel, 1):
-                            if hasattr(message,"id"):
-                                message_id=message.id
-                            else:
-                                message_id=0
-                            if int(message_id) != int(self.motd_list[channelkey][4]):
-                                if self.motd_list[channelkey][4] is not None:
-                                    try:
-                                        msg = await self.bot.get_message(channel, self.motd_list[channelkey][4])
-                                        await self.bot.delete_message(msg)
-                                    except:
-                                        print("Message ID not found: ()".format(self.motd_list[channelkey][4]))
-                                    self.motd_list[channelkey][4] = None
-                                self.motd_list[channelkey][1]=(datetime.datetime.now() +
-                                                       datetime.timedelta(minutes=self.motd_minutes)).timestamp()
-                                response=self.motd_text([channelkey] + self.motd_list[channelkey])
-                                newmsg = await self.bot.send_message(channel, response)
-                                self.motd_list[channelkey][4] = newmsg.id
+                        message_id=0
+                        try:
+                            async for message in self.bot.logs_from(channel, 1):
+                                if hasattr(message,"id"):
+                                    message_id=message.id
+                        except:
+                            message_id=0
+                        if int(message_id) != int(self.motd_list[channelkey][4]):
+                            if self.motd_list[channelkey][4] is not None:
+                                try:
+                                    msg = await self.bot.get_message(channel, self.motd_list[channelkey][4])
+                                    await self.bot.delete_message(msg)
+                                except:
+                                    print("Message ID not found: ()".format(self.motd_list[channelkey][4]))
+                                self.motd_list[channelkey][4] = None
+                            self.motd_list[channelkey][1]=(datetime.datetime.now() +
+                                                   datetime.timedelta(minutes=self.motd_minutes)).timestamp()
+                            response=self.motd_text([channelkey] + self.motd_list[channelkey])
+                            newmsg = await self.bot.send_message(channel, response)
+                            self.motd_list[channelkey][4] = newmsg.id
                         self.motd_list[channelkey][1] = (datetime.datetime.now() + datetime.timedelta(
                                                                      minutes=self.motd_minutes)).timestamp()
                         self.motd_list.save()

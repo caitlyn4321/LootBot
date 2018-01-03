@@ -1,5 +1,6 @@
 import asyncio
 import random
+import LootBot
 from time import strftime
 
 import discord
@@ -80,7 +81,7 @@ class Fun:
     async def insult(self, ctx):
         """Use an amazing insult API to say an insult"""
         await self.bot.type()
-        reqWEB = requests.get('https://insult.mattbas.org/api/en/insult.json',timeout=5).json()
+        reqWEB = LootBot.fetch('https://insult.mattbas.org/api/en/insult.json').json()
 
         await self.bot.say(reqWEB['insult'])
         await self.bot.delete_message(ctx.message)

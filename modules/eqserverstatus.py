@@ -32,7 +32,7 @@ class EQServerStatus:
     def _update(self):
         try:
             changed = False
-            req_api = requests.get(self.url.format(self._servername),timeout=5).json()
+            req_api = LootBot.fetch(self.url.format(self._servername),timeout=10).json()
 
             if int(req_api['returned'])>0:
                 if req_api['game_server_status_list'][0]['last_reported_state'] != self.state:

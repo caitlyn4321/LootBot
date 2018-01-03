@@ -35,9 +35,8 @@ class LootParse:
             self.loot_highlights['items']={}
 
         try:
-
-            req_api = requests.get('https://pitfallguild.org/api.php?function=points&format=json',timeout=20).json()
-            req_web = requests.get('https://pitfallguild.org/index.php/Points/?show_twinks=1',timeout=20)
+            req_api = LootBot.fetch('https://pitfallguild.org/api.php?function=points&format=json').json()
+            req_web = LootBot.fetch('https://pitfallguild.org/index.php/Points/?show_twinks=1')
 
             self.characters = {}
 
@@ -74,7 +73,7 @@ class LootParse:
                     counter += 4
                 counter += 1
             self.fully_loaded = 1
-        except requests.exceptions.ReadTimeout as e:
+        except requests.exceptions.Timeout as e:
             print('{}: {}'.format(type(e).__name__, e))
             self.fully_loaded = 0
         except Exception as e:
@@ -95,7 +94,7 @@ class LootParse:
         """Loads to loot table into the character table for a specific character"""
         if self.characters[character.upper()]['items_loaded'] == 1:
             return
-        req_web = requests.get('https://pitfallguild.org/index.php/Items/?search_type=buyer&search=' + character,timeout=10)
+        req_web = LootBot.fetch('https://pitfallguild.org/index.php/Items/?search_type=buyer&search=' + character)
         counter = 0
         web_lines = req_web.text.splitlines()
 
@@ -167,7 +166,8 @@ class LootParse:
                     parseditems=parseditems[1:]+[parseditems[0]]
                     for x in range(len(parseditems)):
                         if x == len(parseditems)-1:
-                            output += "\t\t__Items with no Tier__: \t**{}**\n".format(len(parseditems[x]))
+                            if len(parseditems[x])>0:
+                                output += "\t\t__Not yet categorized__: \t**{}**\n".format(len(parseditems[x]))
                         else:
                             output += "\t\t__Tier {} items__: \t**{}**\n".format(x+1,len(parseditems[x]))
                         if len(parseditems[x]) > 0:
@@ -346,8 +346,9 @@ class LootParse:
         await self.bot.say("Test complete.  There were {} exceptions seen.".format(errors))
 
     @commands.command(pass_context=True, description="Adds an item to highlight")
-    @commands.has_any_role("Admin", "Officer", "Loot Council")
+    @commands.has_any_role("Admin", "Officer")
     async def highlight_add(self, ctx,tier : int,  *msg):
+        """!highlight_add <tier> <name>"""
         highlight = ' '.join(msg)
         if highlight not in self.loot_highlights['items'].keys():
             self.loot_highlights['items'][highlight]=tier
@@ -357,8 +358,9 @@ class LootParse:
             await self.bot.say("\"{}\" is already on the list at tier {}".format(highlight,self.loot_highlights['items'][highlight]))
 
     @commands.command(pass_context=True, description="Deletes an item highlight")
-    @commands.has_any_role("Admin", "Officer", "Loot Council")
+    @commands.has_any_role("Admin", "Officer")
     async def highlight_del(self, ctx, *msg):
+        """!highlight_del <name>"""
         highlight = ' '.join(msg)
         if highlight not in self.loot_highlights['items'].keys():
             await self.bot.say("\"{}\" is not on the list".format(highlight))
