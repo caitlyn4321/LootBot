@@ -45,7 +45,7 @@ class EQServerStatus:
             self.lastchecked=datetime.datetime.now()
             self.loaded=1
             return changed
-        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
+        except requests.exceptions.Timeout as e:
             self.loaded=0
             return None
         except Exception as e:
@@ -60,6 +60,7 @@ class EQServerStatus:
 
     async def timed_status(self,channel):
         """This is the async background task created to close the poll out after a specific time."""
+        print("Entering timed_status")
         try:
             counter = 0
             await self.bot.wait_until_ready()
@@ -83,7 +84,9 @@ class EQServerStatus:
             exc = '{}: {}'.format(type(e).__name__, e)
             print('Error in timed status:\n{}'.format( exc))
             traceback.print_exc()
-            self.bot.loop.create_task(self.timed_status(discord.Object(id=self.broadcastroom)))
+            self.bot.tasks['EQServerStatus'] = self.bot.loop.create_task(
+                self.timed_status(discord.Object(id=self.broadcastroom)))
+        print("Leaving timed_status")
 
     @commands.command(pass_context=True)
     async def status(self,ctx):

@@ -186,10 +186,13 @@ class LootParse:
 
         else:
             for item in cache['items']:
+                itemfound = False
                 templine = "\t\t{}\t{}\t{}".format(item['name'].replace("`","'"), item['raid'], item['date'].strftime("%d %B %y"))
-                if item['name'] in self.loot_highlights['items'].keys():
-                    output += "**{}**\n".format(templine)
-                else:
+                for boss in self.loot_highlights['bosses'].keys():
+                    if item['name'] in self.loot_highlights['bosses'][boss]:
+                        output += "**{}\t(__{}__)**\n".format(templine,boss)
+                        itemfound = True
+                if not itemfound:
                     output +="{}\n".format(templine)
 
         return output
@@ -248,6 +251,19 @@ class LootParse:
         """The Bot command to perform a character summary lookup"""
         await self.do_lookup(ctx, character, True, summary=True)
 
+    def charsort(self,character):
+        returnvalue = 0
+        try:
+            cache = self.get_char(character.upper())
+            if len(cache['items']) > 0:
+
+                attendance=int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])
+                result=datetime.now().timestamp()-datetime.combine(cache['items'][0]['date'],datetime.min.time()).timestamp()
+                returnvalue = result*attendance
+        except Exception as e:
+            pass
+        return returnvalue
+
     async def do_lookup(self, ctx, character, do_show, embedtitle="",summary=False):
         """The function that actually does the lookups.  Shared between multiple functions"""
         await self.bot.type()
@@ -268,6 +284,7 @@ class LootParse:
             if char not in newchars:
                 newchars.append(char)
 
+        newchars.sort(key=self.charsort)
         if "yourmom" in newchars:
             await self.bot.say("{} is {}".format(ctx.message.author.mention, static.emotes['poop']))
             return

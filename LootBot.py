@@ -5,6 +5,7 @@ import traceback
 import logging
 import datetime
 import requests
+import websockets
 from discord.ext import commands
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), description=static.description, pm_help=True)
@@ -27,20 +28,23 @@ startup_extensions = ["fun","testreplace","quotes","eqserverstatus","LootParse",
 def fetch(url, timeout=10, retries=3):
     counter = retries
     complete = False
+    lasterror = None
+    result = None
     while counter > 0:
         try:
             result = requests.get(url, timeout=timeout)
             complete = True
             break
-        except requests.exceptions.Timeout as e:
+        except (requests.exceptions.Timeout, websockets.exceptions.ConnectionClosed) as e:
             counter -= 1
-            print('{}: {}'.format(type(e).__name__, e))
             lasterror=e
 
     if complete:
         return result
     else:
-        assert(lasterror)
+        print("Failed fetch: {}".format(url))
+        print('{}: {}'.format(type(lasterror).__name__, lasterror))
+        raise(lasterror)
 
 async def is_bot(user):
     if hasattr(user,"roles"):
