@@ -5,6 +5,8 @@ import traceback
 import logging
 import datetime
 import requests
+import asyncio
+import aiohttp
 import websockets
 from discord.ext import commands
 
@@ -25,7 +27,7 @@ bot.logger.addHandler(handler)
 startup_extensions = ["fun","testreplace","quotes","eqserverstatus","LootParse", "polls","moderation"]
 
 
-def fetch(url, timeout=10, retries=3):
+def old_fetch(url, timeout=10, retries=3):
     counter = retries
     complete = False
     lasterror = None
@@ -45,6 +47,20 @@ def fetch(url, timeout=10, retries=3):
         print("Failed fetch: {}".format(url))
         print('{}: {}'.format(type(lasterror).__name__, lasterror))
         raise(lasterror)
+
+async def fetch(url, session=None, json=False):
+    if session is None:
+        newsession = aiohttp.ClientSession()
+    else:
+        newsession=session
+    result = await newsession.get(url)
+    if json:
+        answer = await result.json()
+    else:
+        answer = await result.text()
+    if session is None:
+        newsession.close()
+    return answer
 
 async def is_bot(user):
     if hasattr(user,"roles"):

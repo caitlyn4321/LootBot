@@ -81,7 +81,7 @@ class Fun:
     async def insult(self, ctx):
         """Use an amazing insult API to say an insult"""
         await self.bot.type()
-        reqWEB = LootBot.fetch('https://insult.mattbas.org/api/en/insult.json').json()
+        reqWEB = await LootBot.fetch('https://insult.mattbas.org/api/en/insult.json',json=True)
 
         await self.bot.say(reqWEB['insult'])
         await self.bot.delete_message(ctx.message)

@@ -9,6 +9,7 @@ import random
 import LootBot
 import traceback
 import asyncio
+import aiohttp
 import datastore
 from discord.ext import commands
 from datetime import datetime
@@ -26,20 +27,21 @@ class LootParse:
             self.filename = filename
         self.bot=bot
         random.seed()
-        self.reload_loot()
+        self.bot.loop.create_task(self.reload_loot())
 
-    def reload_loot(self):
+    async def reload_loot(self):
         """Performs the actual reload of the character data"""
         self.loot_highlights = datastore.DataStore(self.filename)
         if "items" not in self.loot_highlights:
             self.loot_highlights['items']={}
 
         try:
-            req_api = LootBot.fetch('https://pitfallguild.org/api.php?function=points&format=json').json()
-            req_web = LootBot.fetch('https://pitfallguild.org/index.php/Points/?show_twinks=1')
+            async with aiohttp.ClientSession() as session:
+                req_api = await LootBot.fetch('https://pitfallguild.org/api.php?function=points&mdkpid=2&format=json',session,json=True)
+                req_web = await LootBot.fetch('https://pitfallguild.org/index.php/Points/?show_twinks=1',session)
+                web_lines = req_web.splitlines()
 
             self.characters = {}
-
             for character in req_api['players'].values():
                 thischaracter = {"id": character["id"],
                                  'name': character['name'],
@@ -48,7 +50,7 @@ class LootParse:
                                  'items_loaded': 0}
                 self.characters[character['name'].upper()] = thischaracter
 
-            web_lines = req_web.text.splitlines()
+
             counter = 0
 
             while counter < len(web_lines):
@@ -85,18 +87,18 @@ class LootParse:
         """A function which allows outside functions to know whether the character database is loaded"""
         return self.fully_loaded
 
-    def get_char(self, character):
+    async def get_char(self, character):
         """Returns the raw data for a specific character"""
-        self.cache_items(character)
+        await self.cache_items(character)
         return self.characters[character.upper()]
 
-    def cache_items(self, character):
+    async def cache_items(self, character):
         """Loads to loot table into the character table for a specific character"""
         if self.characters[character.upper()]['items_loaded'] == 1:
             return
-        req_web = LootBot.fetch('https://pitfallguild.org/index.php/Items/?search_type=buyer&search=' + character)
+        req_web = await LootBot.fetch('https://pitfallguild.org/index.php/Items/?search_type=buyer&search=' + character)
+        web_lines = req_web.splitlines()
         counter = 0
-        web_lines = req_web.text.splitlines()
 
         while counter < len(web_lines):
             if "<td class=\"hiddenSmartphone twinktd\">Items</td>" in web_lines[counter]:
@@ -123,11 +125,11 @@ class LootParse:
         """Performs the item loading test against the characters table"""
         for character in self.characters.keys():
             asyncio.sleep(0.1)
-            print(self.get_char(character))
+            print(await self.get_char(character))
 
-    def display(self, character,summary=False):
+    async def display(self, character,summary=False):
         """Returns a formatted output for the character data passed to it."""
-        cache = self.get_char(character.upper())
+        cache = await self.get_char(character.upper())
         output = "**{}** ({}/{})".format(cache['name'], cache['class'], cache['rank'])
         thirtyatt = int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])
         emote = static.emotes['90']
@@ -235,7 +237,7 @@ class LootParse:
     async def reload(self):
         """Performs a reload of the character table"""
         await self.bot.type()
-        self.reload_loot()
+        await self.reload_loot()
         await self.bot.say("reload complete")
 
     @commands.command(pass_context=True,
@@ -251,10 +253,10 @@ class LootParse:
         """The Bot command to perform a character summary lookup"""
         await self.do_lookup(ctx, character, True, summary=True)
 
-    def charsort(self,character):
+    async def charsort(self,character):
         returnvalue = 0
         try:
-            cache = self.get_char(character.upper())
+            cache = await self.get_char(character.upper())
             if len(cache['items']) > 0:
 
                 attendance=int(cache['attendance'][0][0]) / int(cache['attendance'][0][1])
@@ -262,11 +264,13 @@ class LootParse:
                 returnvalue = result*attendance
         except Exception as e:
             pass
+
         return returnvalue
 
     async def do_lookup(self, ctx, character, do_show, embedtitle="",summary=False):
         """The function that actually does the lookups.  Shared between multiple functions"""
         await self.bot.type()
+        starttime = datetime.now()
         sender=ctx.message.author.name
         if hasattr(ctx.message.author, "nick"):
             if ctx.message.author.nick is not None:
@@ -278,74 +282,81 @@ class LootParse:
             await self.bot.say("I am currently not fully loaded.  Please !reload when I am not broken")
             return
 
-        newchars = []
-        charindex = 0
-        for char in character:
-            if char not in newchars:
-                newchars.append(char)
+        try:
+            newchars = {}
+            charindex = 0
+            for char in character:
+                if char not in newchars:
+                    newchars[char]=await self.charsort(char)
 
-        newchars.sort(key=self.charsort)
-        if "yourmom" in newchars:
-            await self.bot.say("{} is {}".format(ctx.message.author.mention, static.emotes['poop']))
-            return
+            newchars=sorted(newchars, key=newchars.__getitem__)
 
-        lookup_list = []
-        output = ""
-        newoutput = ""
-        hits = 0
-        while charindex < len(newchars):
-            char = newchars[charindex]
-            if " " in char:
-                embedtitle = char
-            else:
-                try:
-                    trunclimit=1990
-                    newoutput = "{} {}\n".format(static.emotes['counts'][hits], self.display(char,summary=summary)[:trunclimit])
-                    hits += 1
-                    if len(newoutput) > trunclimit:
-                        newoutput+="..."
-                except KeyError:
-                    # traceback.print_exc(sys.exc_info())
-                    if do_show is True:
-                        newoutput = "```I don't know who {} is.  I blame you.```\n".format(char)
-                    else:
-                        newoutput = ""
+            if "yourmom" in newchars:
+                await self.bot.say("{} is {}".format(ctx.message.author.mention, static.emotes['poop']))
+                return
 
-            if len(output + newoutput) > 2000 or charindex == len(newchars) - 1:
-                if len(output + newoutput) < 2000:
-                    output += newoutput
-                    charindex += 1
+            lookup_list = []
+            output = ""
+            newoutput = ""
+            hits = 0
+            while charindex < len(newchars):
+                char = newchars[charindex]
+                if " " in char:
+                    embedtitle = char
                 else:
-                    hits -= 1
+                    try:
+                        trunclimit=1990
+                        fulltext=await self.display(char,summary=summary)
+                        newoutput = "{} {}\n".format(static.emotes['counts'][hits], fulltext[:trunclimit])
+                        hits += 1
+                        if len(newoutput) > trunclimit:
+                            newoutput+="..."
+                    except KeyError:
+                        # traceback.print_exc(sys.exc_info())
+                        if do_show is True:
+                            newoutput = "```I don't know who {} is.  I blame you.```\n".format(char)
+                        else:
+                            newoutput = ""
 
-                embed = discord.Embed(title=embedtitle, description=output)
-                if hasattr(ctx.message.author, "nick"):
-                    if ctx.message.author.nick is not None:
-                        embed.set_author(name=ctx.message.author.nick, icon_url=ctx.message.author.avatar_url)
+                if len(output + newoutput) > 2000 or charindex == len(newchars) - 1:
+                    if len(output + newoutput) < 2000:
+                        output += newoutput
+                        charindex += 1
+                    else:
+                        hits -= 1
+
+                    embed = discord.Embed(title=embedtitle, description=output)
+                    if hasattr(ctx.message.author, "nick"):
+                        if ctx.message.author.nick is not None:
+                            embed.set_author(name=ctx.message.author.nick, icon_url=ctx.message.author.avatar_url)
+                        else:
+                            embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
                     else:
                         embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
-                else:
-                    embed.set_author(name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url)
-                react = await self.bot.send_message(ctx.message.channel, embed=embed)
-                lookup_list.append(react.id)
+                    react = await self.bot.send_message(ctx.message.channel, embed=embed)
+                    lookup_list.append(react.id)
 
-                if hits > 1:
-                    for reaction in static.emotes['counts'][:hits]:
-                        await self.bot.add_reaction(react, reaction)
-                if hits == 1:
-                    await self.bot.add_reaction(react, static.emotes['checkbox'][0])
-                    await self.bot.add_reaction(react, static.emotes['checkbox'][1])
-                hits = 0
-                output = ""
-                newoutput = ""
-            else:
-                output = output + newoutput
-                charindex += 1
-        try:
-            await self.bot.delete_message(ctx.message)
-        except:
-            pass
-        return lookup_list
+                    if hits > 1:
+                        for reaction in static.emotes['counts'][:hits]:
+                            await self.bot.add_reaction(react, reaction)
+                    if hits == 1:
+                        await self.bot.add_reaction(react, static.emotes['checkbox'][0])
+                        await self.bot.add_reaction(react, static.emotes['checkbox'][1])
+                    hits = 0
+                    output = ""
+                    newoutput = ""
+                else:
+                    output = output + newoutput
+                    charindex += 1
+            try:
+                await self.bot.delete_message(ctx.message)
+            except:
+                pass
+            if len(newchars) > 1:
+                await self.bot.say("\n**Lookup complete** ({}s)".format((datetime.now() - starttime).seconds))
+            return lookup_list
+        except Exception as e:
+            self.bot.say("I broke and will not be responding to you {}.".format(sender))
 
     @commands.command(name="test", hidden=True, pass_context=True,
                  description="Run a test by pulling the loot lists for all listed members and check to see if I crash.")
