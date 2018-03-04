@@ -237,8 +237,12 @@ class LootParse:
     async def reload(self):
         """Performs a reload of the character table"""
         await self.bot.type()
+        starttime = datetime.now()
         await self.reload_loot()
-        await self.bot.say("reload complete")
+        if self.is_loaded():
+            await self.bot.say("Reload complete in {}s".format((datetime.now() - starttime).seconds))
+        else:
+            await self.bot.say("Reload timed out in {}s (not my fault)".format((datetime.now() - starttime).seconds))
 
     @commands.command(pass_context=True,
                  description="Looks up the loot history for a person or list of people.  "
