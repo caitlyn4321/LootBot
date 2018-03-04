@@ -19,10 +19,12 @@ class Moderation:
             self.filename = filename
         self.motd_list = datastore.DataStore(self.filename)
         self.bot=bot
+        print("MOTD Task started.")
+
+    async def on_ready(self):
         if "motdtask" in self.bot.tasks.keys():
             self.bot.tasks['motdtask'].cancel()
         self.bot.tasks['motdtask'] = self.bot.loop.create_task(self.timed_motd())
-        print("MOTD Task started.")
 
     @commands.command(pass_context=True)
     @commands.has_any_role("Admin","Officer","Loot Council")
@@ -65,6 +67,11 @@ class Moderation:
         """Sets the MOTD or unsets it if left blank."""
         await self.bot.type()
         if len(message) > 0:
+            try:
+                msg = await self.bot.get_message(ctx.message.channel, self.motd_list[ctx.message.channel.id][4])
+                await self.bot.delete_message(msg)
+            except Exception as e:
+                pass
             self.motd_list[ctx.message.channel.id] = [datetime.datetime.now().timestamp(),
                                               (datetime.datetime.now() +
                                                datetime.timedelta(minutes=self.motd_minutes)).timestamp(),
@@ -145,6 +152,10 @@ class Moderation:
                                     message_id=message.id
                         except:
                             message_id=0
+                        try:
+                            test = int(self.motd_list[channelkey][4])
+                        except:
+                            self.motd_list[channelkey][4]=-1
                         if int(message_id) != int(self.motd_list[channelkey][4]):
                             if self.motd_list[channelkey][4] is not None:
                                 try:
