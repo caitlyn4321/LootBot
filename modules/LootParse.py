@@ -18,8 +18,10 @@ from datetime import datetime
 
 class LootParse:
     characters = {}
+    item_votes = {}
     fully_loaded = 0
     filename = "data_loothighlights.json"
+
 
     def __init__(self, bot, filename=""):
         """Startup of the loot parser.  Initial values"""
@@ -305,7 +307,7 @@ class LootParse:
             hits = 0
             while charindex < len(newchars):
                 char = newchars[charindex]
-                if " " in char:
+                if " " in char and not len(embedtitle)>0:
                     embedtitle = char
                 else:
                     try:
@@ -400,6 +402,100 @@ class LootParse:
             del self.loot_highlights['items'][highlight]
             self.loot_highlights.save()
             await self.bot.say("\"{}\" has been removed".format(highlight))
+
+    @commands.command(pass_context=True, description="Opens an item vote")
+    @commands.has_any_role("Admin", "Officer", "Loot Council")
+    async def voteopen(self, ctx, itemname, *desc):
+        """!voteopen <Item> <Description of Item>"""
+        if itemname.upper() in self.item_votes:
+            output="That item is already on the list"
+            for item,info in self.item_votes.items():
+                output += "\n\t{}\t\t\t{}".format(item,info[0])
+            await self.bot.say(output)
+        else:
+            self.item_votes[itemname.upper()] = [' '.join(desc),[]]
+            await self.bot.say("Voting opened: {} ({})".format(itemname,' '.join(desc)))
+
+    @commands.command(pass_context=True, description="Closes an item vote")
+    @commands.has_any_role("Admin", "Officer", "Loot Council")
+    async def voteclose(self, ctx, itemname):
+        """!voteclose <Item>"""
+        if itemname.upper() in self.item_votes:
+            output = "Vote \"{}\" ({}) is now closed.".format(itemname.upper(), self.item_votes[itemname.upper()][0])
+            if len(self.item_votes[itemname.upper()][1]) > 0:
+                names=[]
+                output += "\n"
+                for charname,discordname in self.item_votes[itemname.upper()][1]:
+                    output += "\t{} ({})".format(charname,discordname)
+                    names.append(charname)
+                await self.bot.say(output)
+                await self.do_lookup(ctx, names ,True,"{}: {}".format(itemname,self.item_votes[itemname.upper()][0]), True)
+            else:
+                output += " There were no names entered."
+                await self.bot.say(output)
+            del self.item_votes[itemname.upper()]
+        else:
+            output = "Item \"{}\" is not an open vote.".format(itemname)
+            if len(self.item_votes) >0:
+                output += "  The current votes are:"
+                for item, info in self.item_votes.items():
+                    output += "\n\t{}\t\t\t{}".format(item, info[0])
+            else:
+                output += "  There are currently no open votes"
+            await self.bot.say(output)
+
+    @commands.command(pass_context=True, description="List open item votes")
+    async def votelist(self, ctx):
+        """!votelist"""
+        if len(self.item_votes) > 0:
+            output = "Here is a list of votes that are open,  the first work is the vote name,"
+            " the second is the description.\n\tUSAGE: !vote <name of vote> <Character name>"
+
+            for item,info in self.item_votes.items():
+                output += "\n\t{}\t\t\t{}".format(item,info[0])
+            await self.bot.say(output)
+        else:
+            await self.bot.say("There are no votes currently open")
+
+    @commands.command(pass_context=True, description="Put a characters name in for an item")
+    async def vote(self, ctx,itemname,*chars):
+        """!vote <votename> <character>"""
+        if itemname.upper() in self.item_votes:
+            sender = ctx.message.author.name
+            if hasattr(ctx.message.author, "nick"):
+                if ctx.message.author.nick is not None:
+                    sender = ctx.message.author.nick
+            for charname in chars:
+                if charname.upper() in self.item_votes[itemname.upper()][1]:
+                    await self.bot.say("Character {} is already in the vote {}.".format(charname,itemname.upper()))
+                else:
+                    self.item_votes[itemname.upper()][1].append([charname.upper(),sender])
+                    await self.bot.say("{} has added {} to vote {}".format(sender,charname,itemname))
+        else:
+            await self.bot.say("{} is not a valid vote.  Please do a !votelist for the correct info.".format(itemname))
+
+    @commands.command(pass_context=True, description="Closes an item vote")
+    @commands.has_any_role("Admin", "Officer", "Loot Council")
+    async def voteshow(self, ctx, itemname):
+        """!voteclose <Item>"""
+        if itemname.upper() in self.item_votes:
+            output = "Current results for {} ({}).".format(itemname.upper(), self.item_votes[itemname.upper()][0])
+            if len(self.item_votes[itemname.upper()][1]) > 0:
+                output += "\n"
+                for charname,discordname in self.item_votes[itemname.upper()][1]:
+                    output += "\t{} ({})".format(charname,discordname)
+            else:
+                output += " There were no names entered."
+            await self.bot.say(output)
+        else:
+            output = "Item \"{}\" is not an open vote.".format(itemname)
+            if len(self.item_votes) >0:
+                output += "  The current votes are:"
+                for item, info in self.item_votes.items():
+                    output += "\n\t{}\t\t\t{}".format(item, info[0])
+            else:
+                output += "  There are currently no open votes"
+            await self.bot.say(output)
 
 def setup(bot):
     bot.add_cog(LootParse(bot=bot))
