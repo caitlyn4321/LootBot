@@ -111,11 +111,15 @@ class Moderation:
     def motd_text(self,motd_list):
         thedate = datetime.datetime.fromtimestamp(motd_list[1])
         thechannel = self.bot.get_channel(motd_list[0])
-        themember = thechannel.server.get_member(motd_list[3])
-        theauthor = themember.name
-        if hasattr(themember, "nick"):
-            if themember.nick is not None:
-                theauthor = themember.nick
+        if thechannel is None:
+            print("Error in MOTD.  Channel {} is invalid.\n".format(motd_list[0],motd_list))
+            theauthor="UNKNOWN (Aenie Halp)"
+        else:
+            themember = thechannel.server.get_member(motd_list[3])
+            theauthor = themember.name
+            if hasattr(themember, "nick"):
+                if themember.nick is not None:
+                    theauthor = themember.nick
         response="**MOTD**: {}\n**Set by {} on {}**".format(motd_list[4],theauthor,thedate.strftime("%d %B %y %H:%M"))
         return response
 
@@ -151,18 +155,23 @@ class Moderation:
                                 if hasattr(message,"id"):
                                     message_id=message.id
                         except:
-                            message_id=0
+                            pass
                         try:
                             test = int(self.motd_list[channelkey][4])
                         except:
-                            self.motd_list[channelkey][4]=-1
+                            print("Message ID saved is not integer: {}".format(self.motd_list[channelkey][4]))
+                            self.motd_list[channelkey][4]= -1
+                        try:
+                            test = int(message_id)
+                        except:
+                            print("Message ID last is not integer: {}".format(message_id))
                         if int(message_id) != int(self.motd_list[channelkey][4]):
-                            if self.motd_list[channelkey][4] is not None:
+                            if self.motd_list[channelkey][4] is not None or -1:
                                 try:
                                     msg = await self.bot.get_message(channel, self.motd_list[channelkey][4])
                                     await self.bot.delete_message(msg)
                                 except:
-                                    print("Message ID not found: ()".format(self.motd_list[channelkey][4]))
+                                    print("Message ID not found: {}".format(self.motd_list[channelkey][4]))
                                 self.motd_list[channelkey][4] = None
                             self.motd_list[channelkey][1]=(datetime.datetime.now() +
                                                    datetime.timedelta(minutes=self.motd_minutes)).timestamp()

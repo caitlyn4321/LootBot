@@ -19,14 +19,17 @@ from datetime import datetime
 class LootParse:
     characters = {}
     item_votes = {}
+    notes = {}
     fully_loaded = 0
     filename = "data_loothighlights.json"
+    notes_filename = "data_notes.json"
 
 
     def __init__(self, bot, filename=""):
         """Startup of the loot parser.  Initial values"""
         if len(filename) > 0:
             self.filename = filename
+        self.notes = datastore.DataStore(self.notes_filename)
         self.bot=bot
         random.seed()
         self.bot.loop.create_task(self.reload_loot())
@@ -152,6 +155,8 @@ class LootParse:
         output += "\tLifetime: **{}% ({}/{})**"\
             .format(math.ceil(100 * int(cache['attendance'][2][0]) / int(cache['attendance'][2][1])),
                     cache['attendance'][2][0], cache['attendance'][2][1])
+        if character.upper() in self.notes:
+            output += "\n\t__Note__: **{}**".format(self.notes[character.upper()])
         output += "\n\t__Items__: **{}**\n".format(len(cache['items']))
         if(summary):
             try:
@@ -161,11 +166,15 @@ class LootParse:
                         parseditems.append([])
 
                     for item in cache['items']:
+                        if item['name'] in self.loot_highlights['bosses']:
+                            itemname_text="**{}**".format(item['name'])
+                        else:
+                            itemname_text=item['name']
                         if item['name'] in self.loot_highlights['items'].keys():
-                            parseditems[self.loot_highlights['items'][item['name']]].append([item['name'], item['raid'],
+                            parseditems[self.loot_highlights['items'][item['name']]].append([itemname_text, item['raid'],
                                                                                              item['date']])
                         else:
-                            parseditems[0].append([item['name'], item['raid'], item['date']])
+                            parseditems[0].append([itemname_text, item['raid'], item['date']])
 
                     parseditems=parseditems[1:]+[parseditems[0]]
                     for x in range(len(parseditems)):
@@ -496,6 +505,42 @@ class LootParse:
             else:
                 output += "  There are currently no open votes"
             await self.bot.say(output)
+
+    @commands.command(pass_context=True, description="Set or Unset a players loot note")
+    async def note(self, ctx, character:str, *message: str):
+        """Sets player notes with !note <name> <note>"""
+        await self.bot.type()
+        if len(message) > 0:
+            note = ' '.join(message)
+            note = note[:102]
+            self.notes[character.upper()] = note
+            await self.bot.say("Note for {} set: {}".format(character,note))
+            await self.bot.delete_message(ctx.message)
+        else:
+            if character.upper() in self.notes.keys():
+                del self.notes[character.upper()]
+                await self.bot.say("Note for {} Deleted".format(character))
+            else:
+                await self.bot.say("{} has no note set".format(character))
+        self.notes.save()
+
+    @commands.command( description="List player notes")
+    async def notelist(self):
+        """List player notes"""
+        await self.bot.type()
+        if len(self.notes) > 0:
+            output = "There are {} notes:".format(len(self.notes))
+            for name,note in self.notes.items():
+                newaddition = "\t{} : \t{}".format(name,note)
+                if len(newaddition+"\n"+output) > 2000:
+                    await self.bot.say(output)
+                    output=newaddition
+                else:
+                    output += "\n"+newaddition
+            await self.bot.say(output)
+        else:
+            await self.bot.say("There are currently no notes set")
+
 
 def setup(bot):
     bot.add_cog(LootParse(bot=bot))

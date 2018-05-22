@@ -78,12 +78,24 @@ class Fun:
         await self.bot.say(embed=em)
 
     @commands.command(pass_context=True, description="Insults people", aliases=["play","queue"])
-    async def insult(self, ctx):
+    async def insult(self, ctx,tts=""):
         """Use an amazing insult API to say an insult"""
         await self.bot.type()
         reqWEB = await LootBot.fetch('https://insult.mattbas.org/api/en/insult.json',json=True)
 
-        await self.bot.say(reqWEB['insult'])
+        if tts=="tts":
+            bTTS=True
+        else:
+            bTTS=False
+        await self.bot.say(reqWEB['insult'],tts=bTTS)
+        await self.bot.delete_message(ctx.message)
+
+    @commands.command(pass_context=True, description="Searches for an item")
+    async def item(self, ctx,*itemname: str):
+        """Searches for an item"""
+        await self.bot.type()
+
+        await self.bot.say('http://lmgtfy.com/?q='+'%20'.join(itemname))
         await self.bot.delete_message(ctx.message)
 
 
